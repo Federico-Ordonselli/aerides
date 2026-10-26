@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.util.Locale;
 import java.util.Map;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,9 @@ import dev.ordonselli.raidboard.common.error.BusinessRuleException;
 import dev.ordonselli.raidboard.common.error.ConflictException;
 import dev.ordonselli.raidboard.common.error.NotFoundException;
 import dev.ordonselli.raidboard.event.Event;
+import dev.ordonselli.raidboard.event.EventAlmostFullEvent;
+import dev.ordonselli.raidboard.event.EventChangeType;
+import dev.ordonselli.raidboard.event.EventChangedEvent;
 import dev.ordonselli.raidboard.event.EventRepository;
 import dev.ordonselli.raidboard.event.EventSlot;
 import dev.ordonselli.raidboard.event.EventSlotRepository;
@@ -36,11 +40,13 @@ public class SignupService {
     private final WaitlistService waitlistService;
     private final SignupMapper signupMapper;
     private final AuditService auditService;
+    private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
 
     public SignupService(EventRepository eventRepository, EventSlotRepository slotRepository,
             SignupRepository signupRepository, UserRepository userRepository, WaitlistService waitlistService,
-            SignupMapper signupMapper, AuditService auditService, Clock clock) {
+            SignupMapper signupMapper, AuditService auditService, ApplicationEventPublisher eventPublisher,
+            Clock clock) {
         this.eventRepository = eventRepository;
         this.slotRepository = slotRepository;
         this.signupRepository = signupRepository;
@@ -48,6 +54,7 @@ public class SignupService {
         this.waitlistService = waitlistService;
         this.signupMapper = signupMapper;
         this.auditService = auditService;
+        this.eventPublisher = eventPublisher;
         this.clock = clock;
     }
 
@@ -81,6 +88,7 @@ public class SignupService {
         int position = signupRepository.findMaxPositionBySlotId(slotId) + 1;
         Signup signup = signupRepository.save(
                 new Signup(event, slot, userRepository.getReferenceById(userId), status, position));
+        publishSignupsChanged(event, status);
         return signupMapper.toResponse(signup);
     }
 
@@ -107,29 +115,50 @@ public class SignupService {
         if (hadSeat) {
             waitlistService.promote(slot);
         }
+        publishSignupsChanged(event, SignupStatus.WITHDRAWN);
     }
 
     /** Approves a pending sign-up: it takes a seat if there is one, otherwise it joins the waitlist. */
     @Transactional
     public SignupResponse approve(Long groupId, Long eventId, Long signupId, Long actorId) {
-        requireOpenEvent(groupId, eventId);
+        Event event = requireOpenEvent(groupId, eventId);
         EventSlot slot = lockSlotOfSignup(signupId, eventId);
         Signup signup = requirePending(signupId, eventId);
         signup.setStatus(waitlistService.freeSeats(slot) > 0 ? SignupStatus.CONFIRMED : SignupStatus.WAITLISTED);
         auditService.record(groupId, actorId, AuditAction.SIGNUP_APPROVED, AuditEntityType.SIGNUP, signupId,
                 Map.of("eventId", eventId, "userId", signup.getUser().getId(), "status", signup.getStatus()));
+        publishSignupsChanged(event, signup.getStatus());
         return signupMapper.toResponse(signup);
     }
 
     @Transactional
     public SignupResponse reject(Long groupId, Long eventId, Long signupId, Long actorId) {
-        requireOpenEvent(groupId, eventId);
+        Event event = requireOpenEvent(groupId, eventId);
         lockSlotOfSignup(signupId, eventId);
         Signup signup = requirePending(signupId, eventId);
         signup.setStatus(SignupStatus.REJECTED);
         auditService.record(groupId, actorId, AuditAction.SIGNUP_REJECTED, AuditEntityType.SIGNUP, signupId,
                 Map.of("eventId", eventId, "userId", signup.getUser().getId()));
+        publishSignupsChanged(event, SignupStatus.REJECTED);
         return signupMapper.toResponse(signup);
+    }
+
+    /**
+     * Tells the listeners (WebSocket, Discord) what happened. They run after the commit, so nothing
+     * is announced if this transaction rolls back.
+     */
+    private void publishSignupsChanged(Event event, SignupStatus newStatus) {
+        Long groupId = event.getGroup().getId();
+        eventPublisher.publishEvent(new EventChangedEvent(groupId, event.getId(), EventChangeType.SIGNUPS));
+        // Only a new confirmed seat can bring the event to "one seat left" (business rule 9)
+        if (newStatus == SignupStatus.CONFIRMED && freeSeats(event) == 1) {
+            eventPublisher.publishEvent(new EventAlmostFullEvent(groupId, event.getId()));
+        }
+    }
+
+    private long freeSeats(Event event) {
+        long capacity = event.getSlots().stream().mapToLong(EventSlot::getCapacity).sum();
+        return capacity - signupRepository.countByEventIdAndStatus(event.getId(), SignupStatus.CONFIRMED);
     }
 
     /** Only published events take sign-up changes. Drafts are reported as not found, like for reads. */

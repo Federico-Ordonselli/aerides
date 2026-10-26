@@ -5,9 +5,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
+import com.icegreen.greenmail.util.GreenMail;
 import com.jayway.jsonpath.JsonPath;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -24,19 +29,24 @@ import dev.ordonselli.raidboard.game.RawgClient;
 /**
  * Base class for integration tests: full Spring context, real PostgreSQL (Testcontainers) with the
  * Flyway migrations applied, and MockMvc to call the API through the whole security filter chain.
+ * The server also listens on a random port, for the WebSocket tests, and emails go to an in-memory
+ * SMTP server ({@link TestMailConfiguration}).
  * <p>
  * All subclasses share the same configuration, so Spring reuses one context and one container.
  * For the same reason the RAWG client mock is declared here, not in the single test classes:
  * a different set of mocks would make Spring start a new context.
  */
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class, TestMailConfiguration.class})
 public abstract class AbstractIntegrationTest {
 
     @Autowired
     protected MockMvc mockMvc;
+
+    @Autowired
+    protected GreenMail greenMail;
 
     /** No real calls to RAWG in integration tests. Reset automatically after each test. */
     @MockitoBean
@@ -44,12 +54,16 @@ public abstract class AbstractIntegrationTest {
 
     /** Registers a new user with a unique email and returns it with its access token. */
     protected TestUser newUser(String displayName) throws Exception {
+        return newUser(displayName, "it");
+    }
+
+    protected TestUser newUser(String displayName, String locale) throws Exception {
         String email = "user-" + UUID.randomUUID() + "@example.com";
         String body = mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email": "%s", "password": "supersecret", "displayName": "%s"}
-                                """.formatted(email, displayName)))
+                                {"email": "%s", "password": "supersecret", "displayName": "%s", "locale": "%s"}
+                                """.formatted(email, displayName, locale)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         Integer id = JsonPath.read(body, "$.user.id");
@@ -120,6 +134,34 @@ public abstract class AbstractIntegrationTest {
                 {"title": "Raid night", "startsAt": "%s", "durationMinutes": 120,
                  "requiresApproval": %s, "withdrawDeadlineHours": %d, "slots": [%s]}
                 """.formatted(startsAt, requiresApproval, withdrawDeadlineHours, slots);
+    }
+
+    /** Emails received so far by one address. Every test user has a unique address, so tests don't see each other's mail. */
+    protected List<MimeMessage> emailsTo(TestUser user) {
+        return Arrays.stream(greenMail.getReceivedMessages())
+                .filter(message -> {
+                    try {
+                        return Arrays.stream(message.getAllRecipients())
+                                .anyMatch(address -> address.toString().equals(user.email()));
+                    } catch (MessagingException e) {
+                        throw new IllegalStateException(e);
+                    }
+                })
+                .toList();
+    }
+
+    protected Long signUp(TestUser user, TestGroup group, Long eventId, Long slotId) throws Exception {
+        String body = mockMvc.perform(post("/api/groups/{groupId}/events/{eventId}/signups", group.id(), eventId)
+                        .with(as(user))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"slotId\": %d}".formatted(slotId)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return idOf(body);
+    }
+
+    protected static Long slotIdOf(String eventJson, int index) {
+        return ((Number) JsonPath.read(eventJson, "$.slots[%d].id".formatted(index))).longValue();
     }
 
     protected static Long idOf(String json) {

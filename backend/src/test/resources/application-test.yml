@@ -4,3 +4,6 @@ raidboard:
   # Off by default so integration tests can log in freely; RateLimitIT turns it back on
   rate-limit:
     enabled: false
+  # Jobs are called directly by the tests that need them, never in the background
+  scheduling:
+    enabled: false

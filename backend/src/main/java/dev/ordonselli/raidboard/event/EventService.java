@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -69,13 +70,14 @@ public class EventService {
     private final SignupMapper signupMapper;
     private final AuditService auditService;
     private final EntityManager entityManager;
+    private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
 
     public EventService(EventRepository eventRepository, EventSlotRepository slotRepository,
             SignupRepository signupRepository, GameRepository gameRepository, GroupRepository groupRepository,
             MembershipRepository membershipRepository, UserRepository userRepository, WaitlistService waitlistService,
             GameMapper gameMapper, SignupMapper signupMapper, AuditService auditService, EntityManager entityManager,
-            Clock clock) {
+            ApplicationEventPublisher eventPublisher, Clock clock) {
         this.eventRepository = eventRepository;
         this.slotRepository = slotRepository;
         this.signupRepository = signupRepository;
@@ -88,6 +90,7 @@ public class EventService {
         this.signupMapper = signupMapper;
         this.auditService = auditService;
         this.entityManager = entityManager;
+        this.eventPublisher = eventPublisher;
         this.clock = clock;
     }
 
@@ -191,6 +194,7 @@ public class EventService {
         if (!changed.isEmpty()) {
             auditService.record(groupId, actorId, AuditAction.EVENT_UPDATED, AuditEntityType.EVENT, eventId,
                     Map.of("changed", changed));
+            eventPublisher.publishEvent(new EventChangedEvent(groupId, eventId, EventChangeType.DETAILS));
         }
         return flushAndGetDetail(event, actorId);
     }
@@ -203,6 +207,8 @@ public class EventService {
         }
         event.publish();
         auditService.record(groupId, actorId, AuditAction.EVENT_PUBLISHED, AuditEntityType.EVENT, eventId);
+        eventPublisher.publishEvent(new EventChangedEvent(groupId, eventId, EventChangeType.STATUS));
+        eventPublisher.publishEvent(new EventPublishedEvent(groupId, eventId));
         return flushAndGetDetail(event, actorId);
     }
 
@@ -212,6 +218,7 @@ public class EventService {
         Event event = requireEvent(groupId, eventId);
         event.cancel();
         auditService.record(groupId, actorId, AuditAction.EVENT_CANCELLED, AuditEntityType.EVENT, eventId);
+        eventPublisher.publishEvent(new EventChangedEvent(groupId, eventId, EventChangeType.STATUS));
         return flushAndGetDetail(event, actorId);
     }
 
@@ -223,6 +230,7 @@ public class EventService {
         }
         event.complete();
         auditService.record(groupId, actorId, AuditAction.EVENT_COMPLETED, AuditEntityType.EVENT, eventId);
+        eventPublisher.publishEvent(new EventChangedEvent(groupId, eventId, EventChangeType.STATUS));
         return flushAndGetDetail(event, actorId);
     }
 

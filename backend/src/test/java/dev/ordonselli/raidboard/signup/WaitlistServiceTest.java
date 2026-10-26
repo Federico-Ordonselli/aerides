@@ -62,8 +62,8 @@ class WaitlistServiceTest {
 
         assertThat(promoted).containsExactly(first, second);
         assertThat(promoted).allMatch(signup -> signup.getStatus() == SignupStatus.CONFIRMED);
-        verify(eventPublisher).publishEvent(new SignupPromotedEvent(1L, 10L, 1L, 21L));
-        verify(eventPublisher).publishEvent(new SignupPromotedEvent(1L, 10L, 2L, 22L));
+        verify(eventPublisher).publishEvent(new SignupPromotedEvent(1L, 10L, "Raid", 1L, 21L));
+        verify(eventPublisher).publishEvent(new SignupPromotedEvent(1L, 10L, "Raid", 2L, 22L));
     }
 
     @Test

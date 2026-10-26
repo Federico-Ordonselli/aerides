@@ -1,5 +1,6 @@
 package dev.ordonselli.raidboard.signup;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -10,12 +11,15 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import dev.ordonselli.raidboard.event.EventCount;
+import dev.ordonselli.raidboard.event.EventStatus;
 
 public interface SignupRepository extends JpaRepository<Signup, Long> {
 
     boolean existsByEventIdAndUserIdAndStatusIn(Long eventId, Long userId, Collection<SignupStatus> statuses);
 
     long countBySlotIdAndStatus(Long slotId, SignupStatus status);
+
+    long countByEventIdAndStatus(Long eventId, SignupStatus status);
 
     long countBySlotIdAndStatusIn(Long slotId, Collection<SignupStatus> statuses);
 
@@ -50,6 +54,30 @@ public interface SignupRepository extends JpaRepository<Signup, Long> {
             """)
     List<Signup> findAllWithUserByEventIdAndStatusIn(@Param("eventId") Long eventId,
             @Param("statuses") Collection<SignupStatus> statuses);
+
+    /** For the promotion email, sent after the commit and outside any transaction. */
+    @Query("""
+            select s from Signup s join fetch s.user join fetch s.event e join fetch e.group
+            where s.id = :id
+            """)
+    Optional<Signup> findWithUserAndEventById(@Param("id") Long id);
+
+    /**
+     * Sign-ups of events starting in [from, to] whose user has no reminder yet for that event.
+     * The NOT EXISTS only avoids useless work; the unique key in the notifications table is the real
+     * guarantee (see NotificationRepository.insertIfAbsent).
+     */
+    @Query("""
+            select s from Signup s join fetch s.user u join fetch s.event e join fetch e.group
+            where e.status = :eventStatus and s.status = :signupStatus
+              and e.startsAt > :from and e.startsAt <= :to
+              and not exists (
+                  select 1 from Notification n
+                  where n.userId = u.id and n.dedupKey = concat('reminder:event:', cast(e.id as String)))
+            order by e.startsAt, s.id
+            """)
+    List<Signup> findWithoutReminder(@Param("eventStatus") EventStatus eventStatus,
+            @Param("signupStatus") SignupStatus signupStatus, @Param("from") Instant from, @Param("to") Instant to);
 
     @Query("""
             select new dev.ordonselli.raidboard.event.EventCount(s.event.id, count(s))

@@ -49,6 +49,9 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/actuator/health/**",
+            // WebSocket handshake: browsers can't send the Authorization header there, so the token is
+            // checked on the STOMP CONNECT frame instead (see realtime.StompAuthInterceptor)
+            "/ws",
             "/error"
     };
 

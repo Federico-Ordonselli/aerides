@@ -19,6 +19,22 @@ spring:
       pageable:
         # Upper bound for ?size=: the calendar asks for a whole month at once, nobody needs more
         max-page-size: 200
+  mail:
+    # Mailpit in development (web UI on http://localhost:8025)
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+  messages:
+    # Without this, a locale with no bundle (e.g. "en") would fall back to the server's own locale
+    fallback-to-system-locale: false
+  thymeleaf:
+    # Thymeleaf renders emails only, there are no server-side web pages
+    check-template-location: false
   cache:
     type: caffeine
     cache-names: rawg-search
@@ -38,6 +54,17 @@ raidboard:
     base-url: ${RAWG_BASE_URL:https://api.rawg.io/api}
     # Free key from https://rawg.io/apidocs; without it game search answers 503
     api-key: ${RAWG_API_KEY:}
+    connect-timeout: 2s
+    read-timeout: 5s
+
+  notifications:
+    app-url: ${APP_URL:http://localhost:4200}
+    mail-from: ${MAIL_FROM:Raidboard <noreply@raidboard.local>}
+    time-zone: ${APP_TIME_ZONE:Europe/Rome}
+    reminder-lead-time: 24h
+    reminder-interval: ${REMINDER_INTERVAL:5m}
+
+  discord:
     connect-timeout: 2s
     read-timeout: 5s
 

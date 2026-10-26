@@ -27,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import dev.ordonselli.raidboard.audit.AuditAction;
@@ -61,6 +62,8 @@ class EventServiceTest {
     private static final Instant NEXT_WEEK = NOW.plus(Duration.ofDays(7));
 
     @Mock
+    private ApplicationEventPublisher eventPublisher;
+    @Mock
     private EventRepository eventRepository;
     @Mock
     private EventSlotRepository slotRepository;
@@ -90,7 +93,7 @@ class EventServiceTest {
     void setUp() {
         eventService = new EventService(eventRepository, slotRepository, signupRepository, gameRepository,
                 groupRepository, membershipRepository, userRepository, waitlistService, new GameMapperImpl(),
-                new SignupMapperImpl(), auditService, entityManager, Clock.fixed(NOW, ZoneOffset.UTC));
+                new SignupMapperImpl(), auditService, entityManager, eventPublisher, Clock.fixed(NOW, ZoneOffset.UTC));
         group = new Group("Gilda", "gilda", null, "ABCDEFGHJK");
         ReflectionTestUtils.setField(group, "id", GROUP_ID);
         event = new Event(group, null, "Raid", NEXT_WEEK, 120);

@@ -23,6 +23,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.InOrder;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import dev.ordonselli.raidboard.audit.AuditAction;
@@ -32,6 +33,9 @@ import dev.ordonselli.raidboard.common.error.BusinessRuleException;
 import dev.ordonselli.raidboard.common.error.ConflictException;
 import dev.ordonselli.raidboard.common.error.NotFoundException;
 import dev.ordonselli.raidboard.event.Event;
+import dev.ordonselli.raidboard.event.EventAlmostFullEvent;
+import dev.ordonselli.raidboard.event.EventChangeType;
+import dev.ordonselli.raidboard.event.EventChangedEvent;
 import dev.ordonselli.raidboard.event.EventRepository;
 import dev.ordonselli.raidboard.event.EventSlot;
 import dev.ordonselli.raidboard.event.EventSlotRepository;
@@ -61,6 +65,8 @@ class SignupServiceTest {
     private WaitlistService waitlistService;
     @Mock
     private AuditService auditService;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     private SignupService signupService;
     private Event event;
@@ -70,7 +76,7 @@ class SignupServiceTest {
     @BeforeEach
     void setUp() {
         signupService = new SignupService(eventRepository, slotRepository, signupRepository, userRepository,
-                waitlistService, new SignupMapperImpl(), auditService, Clock.fixed(NOW, ZoneOffset.UTC));
+                waitlistService, new SignupMapperImpl(), auditService, eventPublisher, Clock.fixed(NOW, ZoneOffset.UTC));
         Group group = new Group("Gilda", "gilda", null, "ABCDEFGHJK");
         ReflectionTestUtils.setField(group, "id", GROUP_ID);
         // Starts in two days, withdrawals close 24 hours before
@@ -94,6 +100,51 @@ class SignupServiceTest {
 
         assertThat(response.status()).isEqualTo(SignupStatus.CONFIRMED);
         assertThat(response.position()).isEqualTo(5);
+    }
+
+    @Test
+    void signUpAnnouncesTheChangeToTheEventViewers() {
+        givenSignupPossible();
+        when(waitlistService.freeSeats(slot)).thenReturn(0L);
+
+        signupService.signUp(GROUP_ID, EVENT_ID, USER_ID, SLOT_ID);
+
+        verify(eventPublisher).publishEvent(new EventChangedEvent(GROUP_ID, EVENT_ID, EventChangeType.SIGNUPS));
+    }
+
+    @Test
+    void aConfirmedSignupThatLeavesOneSeatAnnouncesTheEventIsAlmostFull() {
+        givenSignupPossible();
+        when(waitlistService.freeSeats(slot)).thenReturn(2L);
+        // Capacity 2 (one Tank slot): after this sign-up one seat is taken, one is left
+        when(signupRepository.countByEventIdAndStatus(EVENT_ID, SignupStatus.CONFIRMED)).thenReturn(1L);
+
+        signupService.signUp(GROUP_ID, EVENT_ID, USER_ID, SLOT_ID);
+
+        verify(eventPublisher).publishEvent(new EventAlmostFullEvent(GROUP_ID, EVENT_ID));
+    }
+
+    @Test
+    void noAlmostFullAnnouncementWhenMoreThanOneSeatIsLeftOrTheEventIsFull() {
+        givenSignupPossible();
+        when(waitlistService.freeSeats(slot)).thenReturn(2L);
+        when(signupRepository.countByEventIdAndStatus(EVENT_ID, SignupStatus.CONFIRMED)).thenReturn(0L, 2L);
+
+        signupService.signUp(GROUP_ID, EVENT_ID, USER_ID, SLOT_ID);
+        signupService.signUp(GROUP_ID, EVENT_ID, USER_ID, SLOT_ID);
+
+        verify(eventPublisher, never()).publishEvent(any(EventAlmostFullEvent.class));
+    }
+
+    @Test
+    void aWaitlistedSignupNeverAnnouncesTheEventIsAlmostFull() {
+        givenSignupPossible();
+        when(waitlistService.freeSeats(slot)).thenReturn(0L);
+
+        signupService.signUp(GROUP_ID, EVENT_ID, USER_ID, SLOT_ID);
+
+        verify(signupRepository, never()).countByEventIdAndStatus(any(), any());
+        verify(eventPublisher, never()).publishEvent(any(EventAlmostFullEvent.class));
     }
 
     @Test

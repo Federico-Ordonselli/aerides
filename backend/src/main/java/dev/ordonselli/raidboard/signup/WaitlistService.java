@@ -45,7 +45,7 @@ public class WaitlistService {
         for (Signup signup : promoted) {
             signup.setStatus(SignupStatus.CONFIRMED);
             eventPublisher.publishEvent(new SignupPromotedEvent(slot.getEvent().getGroup().getId(),
-                    slot.getEvent().getId(), signup.getId(), signup.getUser().getId()));
+                    slot.getEvent().getId(), slot.getEvent().getTitle(), signup.getId(), signup.getUser().getId()));
         }
         return promoted;
     }

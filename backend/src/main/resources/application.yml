@@ -14,6 +14,11 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+  cache:
+    type: caffeine
+    cache-names: rawg-search
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=10m
 
 raidboard:
   security:
@@ -23,6 +28,13 @@ raidboard:
     refresh-token-ttl: ${REFRESH_TOKEN_TTL:14d}
     refresh-cookie-secure: ${REFRESH_COOKIE_SECURE:true}
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
+  rawg:
+    base-url: ${RAWG_BASE_URL:https://api.rawg.io/api}
+    # Free key from https://rawg.io/apidocs; without it game search answers 503
+    api-key: ${RAWG_API_KEY:}
+    connect-timeout: 2s
+    read-timeout: 5s
 
   # Brute-force protection for the auth endpoints: "capacity" attempts every "period"
   rate-limit:

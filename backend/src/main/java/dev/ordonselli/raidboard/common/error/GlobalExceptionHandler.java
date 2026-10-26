@@ -51,6 +51,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(HttpStatus.UNPROCESSABLE_CONTENT, "Business rule violated", ex.getMessage());
     }
 
+    @ExceptionHandler(ExternalServiceUnavailableException.class)
+    public ProblemDetail handleExternalServiceUnavailable(ExternalServiceUnavailableException ex) {
+        log.warn("External service unavailable: {}", ex.getMessage());
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, "Service unavailable", ex.getMessage());
+    }
+
     @ExceptionHandler(RateLimitExceededException.class)
     public ResponseEntity<ProblemDetail> handleRateLimit(RateLimitExceededException ex) {
         ProblemDetail body = problem(HttpStatus.TOO_MANY_REQUESTS, "Too many requests", ex.getMessage());

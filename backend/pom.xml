@@ -18,11 +18,16 @@
 		<springdoc.version>3.2.0</springdoc.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
 		<bucket4j.version>8.21.0</bucket4j.version>
+		<wiremock.version>3.13.2</wiremock.version>
 	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -126,6 +131,13 @@
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>testcontainers-postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<!-- Fake HTTP server to test the RAWG client, including timeouts and server errors -->
+			<groupId>org.wiremock</groupId>
+			<artifactId>wiremock-standalone</artifactId>
+			<version>${wiremock.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

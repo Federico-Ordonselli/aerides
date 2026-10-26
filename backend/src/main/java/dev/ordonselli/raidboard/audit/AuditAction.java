@@ -1,0 +1,15 @@
+package dev.ordonselli.raidboard.audit;
+
+public enum AuditAction {
+    GROUP_CREATED,
+    GROUP_UPDATED,
+    GROUP_DELETED,
+    INVITE_CODE_REGENERATED,
+    DISCORD_WEBHOOK_UPDATED,
+    MEMBER_JOINED,
+    MEMBER_ROLE_CHANGED,
+    MEMBER_REMOVED,
+    MEMBER_LEFT,
+    GAME_ADDED,
+    GAME_REMOVED
+}

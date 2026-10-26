@@ -1,3 +1,6 @@
 raidboard:
   security:
     jwt-secret: test-secret-for-integration-tests-0123456789
+  # Off by default so integration tests can log in freely; RateLimitIT turns it back on
+  rate-limit:
+    enabled: false

@@ -24,6 +24,24 @@ raidboard:
     refresh-cookie-secure: ${REFRESH_COOKIE_SECURE:true}
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
 
+  # Brute-force protection for the auth endpoints: "capacity" attempts every "period"
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    login-per-ip-and-email:
+      capacity: ${RATE_LIMIT_LOGIN_PER_IP_AND_EMAIL:5}
+      period: 1m
+    login-per-ip:
+      capacity: ${RATE_LIMIT_LOGIN_PER_IP:20}
+      period: 1m
+    refresh-per-ip:
+      capacity: ${RATE_LIMIT_REFRESH_PER_IP:20}
+      period: 1m
+
+server:
+  # Trust X-Forwarded-For from the reverse proxy (nginx, Azure ingress), so the rate limiter
+  # sees the real client IP instead of the proxy's. Only proxies on private networks are trusted.
+  forward-headers-strategy: native
+
 management:
   endpoints:
     web:

@@ -17,6 +17,7 @@
 		<java.version>21</java.version>
 		<springdoc.version>3.2.0</springdoc.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
+		<bucket4j.version>8.21.0</bucket4j.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -56,6 +57,16 @@
 			<groupId>org.mapstruct</groupId>
 			<artifactId>mapstruct</artifactId>
 			<version>${mapstruct.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.bucket4j</groupId>
+			<artifactId>bucket4j_jdk17-core</artifactId>
+			<version>${bucket4j.version}</version>
+		</dependency>
+		<dependency>
+			<!-- Bounded in-memory cache that holds one rate-limit bucket per client key -->
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.flywaydb</groupId>

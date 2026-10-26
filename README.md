@@ -10,8 +10,8 @@ Under the hood it is a **resource-booking business application**: roles, approva
 
 | Layer    | Technologies |
 |----------|--------------|
-| Backend  | Java 21, Spring Boot 4.1, Spring Security (JWT resource server), Spring Data JPA / Hibernate 7, PostgreSQL 17, Flyway, MapStruct, springdoc-openapi |
-| Frontend | Angular 22 (standalone components, signals, zoneless), PrimeNG, ngx-translate (IT/EN), Jest |
+| Backend  | Java 21, Spring Boot 4.1, Spring Security (JWT resource server), Spring Data JPA / Hibernate 7, PostgreSQL 17, Flyway, MapStruct, Bucket4j, springdoc-openapi |
+| Frontend | Angular 22 (standalone components, signals, zoneless), Angular Material 3, ngx-translate (IT/EN), Jest; coming next: FullCalendar (calendar view), Chart.js via ng2-charts (stats) |
 | Testing  | JUnit 5, Mockito, Testcontainers, MockMvc, Jest |
 | DevOps   | Docker, Docker Compose, nginx, Mailpit |
 
@@ -84,6 +84,14 @@ frontend/  Angular app
 - **Rotation and reuse detection**: every refresh revokes the old token and issues a new one. If a revoked token is presented again, it was stolen and replayed, so all of the user's sessions are revoked.
 - **Errors**: every error is an RFC 9457 `ProblemDetail` JSON body, including 401 and 403 responses raised by the security filters.
 - **Passwords**: hashed with BCrypt, between 8 and 72 characters (BCrypt ignores anything after 72 bytes).
+- **No user enumeration through login timing**: login always runs one BCrypt comparison, against a dummy hash created at startup with the same encoder when the email is unknown. Both cases take the same time and return the same "Invalid email or password" message.
+- **Rate limiting** (Bucket4j, token bucket): `POST /api/auth/login` allows 5 attempts per minute per IP + email and 20 per minute per IP; `POST /api/auth/refresh` allows 20 per minute per IP. Going over the limit returns `429 Too Many Requests` with a `ProblemDetail` body and a `Retry-After` header. The limits are configurable (`raidboard.rate-limit.*`, see `.env.example`).
+  - The buckets live **in memory**, in a bounded Caffeine cache, so each backend instance counts on its own. A production deployment with several instances would move this to a shared store (Redis via Bucket4j's distributed backends) or to the API gateway / ingress.
+  - The client IP comes from `X-Forwarded-For`, which Spring trusts only when it's set by a proxy on a private network. nginx **overwrites** that header with the real client address, so a client can't fake a new IP on every request. In production the backend port must not be publicly reachable, and the edge proxy (e.g. Azure ingress) must be the one setting the header.
+
+### Known trade-off: registration reveals whether an email exists
+
+`POST /api/auth/register` answers `409 Conflict` when the email is already registered, so someone could check whether an address has an account. This is a deliberate choice. Hiding it properly would mean an email-verification flow: always answer "check your inbox" and send either a confirmation link or an "you already have an account" email. That costs extra work and makes signing up clumsier, which isn't justified for this app's data. The impact is limited by the fact that you can only *check* addresses, not list them, and the endpoint can be rate-limited the same way as login if it ever becomes a problem.
 
 ## Configuration
 

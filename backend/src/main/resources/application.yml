@@ -14,6 +14,11 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+  data:
+    web:
+      pageable:
+        # Upper bound for ?size=: the calendar asks for a whole month at once, nobody needs more
+        max-page-size: 200
   cache:
     type: caffeine
     cache-names: rawg-search

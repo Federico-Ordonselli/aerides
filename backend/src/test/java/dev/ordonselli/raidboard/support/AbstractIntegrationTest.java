@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import com.jayway.jsonpath.JsonPath;
@@ -81,6 +82,48 @@ public abstract class AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"inviteCode\": \"%s\"}".formatted(group.inviteCode())))
                 .andExpect(status().isOk());
+    }
+
+    /**
+     * Creates a DRAFT event through the API with the given JSON body and returns the response body.
+     * See {@link #eventJson} for a ready-made body.
+     */
+    protected String createEvent(TestUser officer, TestGroup group, String body) throws Exception {
+        return mockMvc.perform(post("/api/groups/{groupId}/events", group.id()).with(as(officer))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+    }
+
+    /** Creates and publishes an event; returns the published event's JSON. */
+    protected String createPublishedEvent(TestUser officer, TestGroup group, String body) throws Exception {
+        Long eventId = idOf(createEvent(officer, group, body));
+        return mockMvc.perform(post("/api/groups/{groupId}/events/{eventId}/publish", group.id(), eventId)
+                        .with(as(officer)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+    }
+
+    /** A valid event body starting at {@code startsAt}, with the given slots, e.g. {@code "Tank", 2, "Healer", 1}. */
+    protected static String eventJson(Instant startsAt, boolean requiresApproval, int withdrawDeadlineHours,
+            Object... roleAndCapacity) {
+        StringBuilder slots = new StringBuilder();
+        for (int i = 0; i < roleAndCapacity.length; i += 2) {
+            if (!slots.isEmpty()) {
+                slots.append(", ");
+            }
+            slots.append("{\"roleName\": \"%s\", \"capacity\": %d}".formatted(roleAndCapacity[i],
+                    roleAndCapacity[i + 1]));
+        }
+        return """
+                {"title": "Raid night", "startsAt": "%s", "durationMinutes": 120,
+                 "requiresApproval": %s, "withdrawDeadlineHours": %d, "slots": [%s]}
+                """.formatted(startsAt, requiresApproval, withdrawDeadlineHours, slots);
+    }
+
+    protected static Long idOf(String json) {
+        return ((Number) JsonPath.read(json, "$.id")).longValue();
     }
 
     protected void changeRole(TestUser owner, TestGroup group, TestUser target, String role) throws Exception {

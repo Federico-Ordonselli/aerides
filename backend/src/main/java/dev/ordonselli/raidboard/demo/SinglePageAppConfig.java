@@ -1,7 +1,6 @@
 package dev.ordonselli.raidboard.demo;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,6 +10,10 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.AndRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -25,19 +28,30 @@ import org.springframework.web.servlet.resource.PathResourceResolver;
 @Profile("demo")
 public class SinglePageAppConfig implements WebMvcConfigurer {
 
-    /** Paths that belong to the backend: they keep the normal, default-deny security chain. */
-    private static final List<String> BACKEND_PREFIXES =
-            List.of("/api/", "/ws", "/actuator", "/v3/api-docs", "/swagger-ui");
-
     /**
      * Static files and Angular routes hold no data, so they are public. This chain runs before the main
-     * one ({@code @Order(1)}) and only for GET requests outside the backend paths.
+     * one ({@code @Order(1)}) and only for GET requests outside the backend paths, which keep the normal,
+     * default-deny chain.
+     * <p>
+     * Paths are compared with the same rules Spring MVC uses to route (PathPattern, on the decoded path).
+     * Comparing the raw URI instead would let {@code /%61pi/groups} skip the JWT chain and still reach
+     * the {@code /api/groups} controller.
      */
     @Bean
     @Order(1)
     public SecurityFilterChain frontendSecurityFilterChain(HttpSecurity http) throws Exception {
-        RequestMatcher frontendRequests = request -> HttpMethod.GET.matches(request.getMethod())
-                && BACKEND_PREFIXES.stream().noneMatch(request.getRequestURI()::startsWith);
+        PathPatternRequestMatcher.Builder paths = PathPatternRequestMatcher.withDefaults();
+        RequestMatcher backendPaths = new OrRequestMatcher(
+                paths.matcher("/api/**"),
+                paths.matcher("/ws"),
+                paths.matcher("/actuator/**"),
+                paths.matcher("/v3/api-docs/**"),
+                paths.matcher("/swagger-ui/**"),
+                paths.matcher("/swagger-ui.html"),
+                paths.matcher("/error"));
+        RequestMatcher frontendRequests = new AndRequestMatcher(
+                paths.matcher(HttpMethod.GET, "/**"),
+                new NegatedRequestMatcher(backendPaths));
         http
                 .securityMatcher(frontendRequests)
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
@@ -70,7 +84,8 @@ public class SinglePageAppConfig implements WebMvcConfigurer {
             if (resourcePath.contains(".") || resourcePath.startsWith("api/")) {
                 return null;
             }
-            return location.createRelative("index.html");
+            Resource app = location.createRelative("index.html");
+            return app.exists() ? app : null;
         }
     }
 }

@@ -1,6 +1,7 @@
 package dev.ordonselli.raidboard.auth;
 
 import java.util.Locale;
+import java.util.Optional;
 
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,6 +23,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenService jwtTokenService;
     private final RefreshTokenService refreshTokenService;
+    /** Compared against when the email is unknown, see {@link #login}. */
+    private final String dummyPasswordHash;
 
     public AuthService(UserRepository userRepository, UserMapper userMapper, PasswordEncoder passwordEncoder,
             JwtTokenService jwtTokenService, RefreshTokenService refreshTokenService) {
@@ -30,6 +33,7 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenService = jwtTokenService;
         this.refreshTokenService = refreshTokenService;
+        this.dummyPasswordHash = passwordEncoder.encode("dummy-password-used-only-for-timing");
     }
 
     @Transactional
@@ -46,11 +50,16 @@ public class AuthService {
 
     @Transactional
     public AuthResult login(LoginRequest request) {
-        // Same message for "unknown email" and "wrong password": don't reveal which emails are registered
-        User user = userRepository.findByEmail(normalizeEmail(request.email()))
-                .filter(candidate -> passwordEncoder.matches(request.password(), candidate.getPasswordHash()))
-                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
-        return issueTokens(user);
+        Optional<User> user = userRepository.findByEmail(normalizeEmail(request.email()));
+        // Always run exactly one BCrypt comparison, even for unknown emails: otherwise those requests
+        // would answer much faster and an attacker could find out which emails are registered.
+        String passwordHash = user.map(User::getPasswordHash).orElse(dummyPasswordHash);
+        boolean passwordMatches = passwordEncoder.matches(request.password(), passwordHash);
+        if (user.isEmpty() || !passwordMatches) {
+            // Same message for both cases, for the same reason
+            throw new BadCredentialsException("Invalid email or password");
+        }
+        return issueTokens(user.get());
     }
 
     @Transactional(noRollbackFor = InvalidRefreshTokenException.class)

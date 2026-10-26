@@ -3,6 +3,7 @@ package dev.ordonselli.raidboard.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -85,6 +86,8 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.login(new LoginRequest("nobody@example.com", "whatever")))
                 .isInstanceOf(BadCredentialsException.class)
                 .hasMessage("Invalid email or password");
+        // A BCrypt comparison still runs, so the response time doesn't reveal that the email is unknown
+        verify(passwordEncoder).matches(eq("whatever"), any());
     }
 
     @Test

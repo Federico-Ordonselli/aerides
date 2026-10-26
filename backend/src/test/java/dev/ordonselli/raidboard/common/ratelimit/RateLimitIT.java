@@ -81,6 +81,33 @@ class RateLimitIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void oneAccountAttackedFromManyIpsHitsThePerEmailLimit() throws Exception {
+        String email = "target-" + NEXT_IP.get() + "@example.com";
+        int capacity = limits.loginPerEmail().capacity();
+
+        // Every attempt comes from a different IP, so the per-IP limits never trigger
+        for (int attempt = 0; attempt < capacity; attempt++) {
+            mockMvc.perform(login(email).with(from(uniqueIp()))).andExpect(status().isUnauthorized());
+        }
+
+        mockMvc.perform(login(email).with(from(uniqueIp()))).andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void ipv6ClientsAreLimitedPerSlash64() throws Exception {
+        int capacity = limits.loginPerIpAndEmail().capacity();
+
+        // Same /64 network, a different address on every request
+        for (int attempt = 0; attempt < capacity; attempt++) {
+            mockMvc.perform(login("v6@example.com").with(from("2001:db8:aaaa:bbbb::" + (attempt + 1))))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        mockMvc.perform(login("v6@example.com").with(from("2001:db8:aaaa:bbbb::ffff")))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
     void tooManyRefreshCallsReturn429() throws Exception {
         String ip = uniqueIp();
         int capacity = limits.refreshPerIp().capacity();
@@ -109,8 +136,9 @@ class RateLimitIT extends AbstractIntegrationTest {
         };
     }
 
-    /** IPs from the 203.0.113.0/24 range, reserved for documentation and tests. */
+    /** IPs from 198.18.0.0/15, a range reserved for testing: room for 131,072 unique addresses. */
     private static String uniqueIp() {
-        return "203.0.113." + NEXT_IP.getAndIncrement();
+        int n = NEXT_IP.getAndIncrement();
+        return "198." + (18 + n / 65_536) + "." + (n / 256 % 256) + "." + (n % 256);
     }
 }

@@ -15,6 +15,7 @@ public record RateLimitProperties(
         boolean enabled,
         @Valid @NotNull Limit loginPerIpAndEmail,
         @Valid @NotNull Limit loginPerIp,
+        @Valid @NotNull Limit loginPerEmail,
         @Valid @NotNull Limit refreshPerIp) {
 
     public record Limit(@Positive int capacity, @NotNull Duration period) {

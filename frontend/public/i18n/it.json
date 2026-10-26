@@ -33,7 +33,8 @@
     "required": "Campo obbligatorio",
     "email": "Inserisci un'email valida",
     "length": "Deve contenere da {{min}} a {{max}} caratteri",
-    "passwordsMismatch": "Le password non coincidono"
+    "passwordsMismatch": "Le password non coincidono",
+    "tooManyBytes": "Troppo lunga: le lettere accentate e i simboli occupano più spazio"
   },
   "errors": {
     "generic": "Qualcosa è andato storto, riprova",

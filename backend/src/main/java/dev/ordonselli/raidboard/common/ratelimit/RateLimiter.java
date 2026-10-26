@@ -1,7 +1,11 @@
 package dev.ordonselli.raidboard.common.ratelimit;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.time.Duration;
+import java.util.HexFormat;
 import java.util.Locale;
+import java.util.stream.Stream;
 import java.util.concurrent.TimeUnit;
 
 import com.github.benmanes.caffeine.cache.Cache;
@@ -20,7 +24,8 @@ import dev.ordonselli.raidboard.common.ratelimit.RateLimitProperties.Limit;
  * refilled every {@code period}. A request takes one token; with no tokens left it is rejected.
  * <p>
  * Buckets live in a bounded Caffeine cache and expire when unused, so memory cannot grow forever.
- * Because the state is local to this JVM, each instance counts separately: with several instances
+ * Because the state is local to this JVM, each instance counts separately, and a flood of distinct keys
+ * can push old buckets out of the cache (resetting them): with several instances or under attack,
  * the limits should move to a shared store (Redis) or to the API gateway.
  */
 @Component
@@ -42,14 +47,38 @@ public class RateLimiter {
     }
 
     public void checkLogin(String clientIp, String email) {
-        consume("login-ip:" + clientIp, properties.loginPerIp());
+        String client = clientKey(clientIp);
         // Normalized like AuthService does, so "Mario@x.com" and "mario@x.com" share the same bucket
         String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
-        consume("login-ip-email:" + clientIp + ":" + normalizedEmail, properties.loginPerIpAndEmail());
+        consume("login-ip:" + client, properties.loginPerIp());
+        consume("login-ip-email:" + client + ":" + normalizedEmail, properties.loginPerIpAndEmail());
+        // Independent of the IP: stops a botnet spreading guesses for one account over many addresses.
+        // Kept looser than the other limits, because an attacker can use it to block the real user.
+        consume("login-email:" + normalizedEmail, properties.loginPerEmail());
     }
 
     public void checkRefresh(String clientIp) {
-        consume("refresh-ip:" + clientIp, properties.refreshPerIp());
+        consume("refresh-ip:" + clientKey(clientIp), properties.refreshPerIp());
+    }
+
+    /**
+     * IPv4 addresses are used as they are. IPv6 addresses are reduced to their /64 prefix: a single
+     * client usually controls a whole /64 (2^64 addresses), so limiting per address would be useless.
+     */
+    static String clientKey(String ip) {
+        if (!ip.contains(":")) {
+            return ip;
+        }
+        try {
+            // For an IP literal this only parses the text, it never does a DNS lookup
+            byte[] address = InetAddress.getByName(ip).getAddress();
+            if (address.length != 16) {
+                return ip;
+            }
+            return HexFormat.of().formatHex(address, 0, 8) + "::/64";
+        } catch (UnknownHostException e) {
+            return ip;
+        }
     }
 
     private void consume(String key, Limit limit) {
@@ -75,13 +104,10 @@ public class RateLimiter {
     }
 
     private static Duration longestPeriod(RateLimitProperties properties) {
-        Duration longest = properties.loginPerIpAndEmail().period();
-        if (properties.loginPerIp().period().compareTo(longest) > 0) {
-            longest = properties.loginPerIp().period();
-        }
-        if (properties.refreshPerIp().period().compareTo(longest) > 0) {
-            longest = properties.refreshPerIp().period();
-        }
-        return longest;
+        return Stream.of(properties.loginPerIpAndEmail(), properties.loginPerIp(), properties.loginPerEmail(),
+                        properties.refreshPerIp())
+                .map(Limit::period)
+                .max(Duration::compareTo)
+                .orElseThrow();
     }
 }

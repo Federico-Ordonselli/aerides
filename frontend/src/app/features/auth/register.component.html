@@ -41,7 +41,13 @@
             <mat-icon>{{ hidePassword() ? 'visibility' : 'visibility_off' }}</mat-icon>
           </button>
           <mat-hint>{{ 'validation.length' | translate: { min: 8, max: 72 } }}</mat-hint>
-          <mat-error>{{ 'validation.length' | translate: { min: 8, max: 72 } }}</mat-error>
+          <mat-error>
+            @if (form.controls.password.hasError('maxUtf8Bytes')) {
+              {{ 'validation.tooManyBytes' | translate }}
+            } @else {
+              {{ 'validation.length' | translate: { min: 8, max: 72 } }}
+            }
+          </mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline">

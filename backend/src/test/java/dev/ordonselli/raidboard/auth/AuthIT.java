@@ -73,6 +73,29 @@ class AuthIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void registerWithPasswordOver72BytesIsRejectedEvenIfUnder72Characters() throws Exception {
+        // 40 characters, but "é" takes 2 bytes in UTF-8: 80 bytes, more than BCrypt accepts
+        String password = "é".repeat(40);
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "%s", "password": "%s", "displayName": "Mario"}
+                                """.formatted(uniqueEmail(), password)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.password").value("must be at most 72 bytes long"));
+    }
+
+    @Test
+    void loginWithOversizedEmailIsRejectedBeforeAnyWork() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("a".repeat(300) + "@example.com", PASSWORD)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.email").exists());
+    }
+
+    @Test
     void registerWithAlreadyUsedEmailReturnsConflict() throws Exception {
         String email = uniqueEmail();
         register(email);

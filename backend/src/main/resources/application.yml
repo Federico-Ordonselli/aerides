@@ -33,13 +33,17 @@ raidboard:
     login-per-ip:
       capacity: ${RATE_LIMIT_LOGIN_PER_IP:20}
       period: 1m
+    login-per-email:
+      capacity: ${RATE_LIMIT_LOGIN_PER_EMAIL:20}
+      period: 15m
     refresh-per-ip:
       capacity: ${RATE_LIMIT_REFRESH_PER_IP:20}
       period: 1m
 
 server:
   # Trust X-Forwarded-For from the reverse proxy (nginx, Azure ingress), so the rate limiter
-  # sees the real client IP instead of the proxy's. Only proxies on private networks are trusted.
+  # sees the real client IP instead of the proxy's. By default Tomcat trusts any proxy on a private
+  # network; in production restrict it to the real proxy with SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES.
   forward-headers-strategy: native
 
 management:

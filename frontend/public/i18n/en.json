@@ -33,7 +33,8 @@
     "required": "This field is required",
     "email": "Enter a valid email",
     "length": "Must be between {{min}} and {{max}} characters",
-    "passwordsMismatch": "Passwords don't match"
+    "passwordsMismatch": "Passwords don't match",
+    "tooManyBytes": "Too long: accented letters and symbols take up more space"
   },
   "errors": {
     "generic": "Something went wrong, please try again",

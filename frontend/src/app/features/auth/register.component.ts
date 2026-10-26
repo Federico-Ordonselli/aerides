@@ -12,6 +12,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 import { AuthService } from '../../core/auth/auth.service';
 import { LanguageService } from '../../core/i18n/language.service';
+import { maxUtf8Bytes } from '../../shared/validators/max-utf8-bytes.validator';
 import { passwordsMatch } from '../../shared/validators/passwords-match.validator';
 
 @Component({
@@ -39,7 +40,7 @@ export class RegisterComponent {
     {
       displayName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
       email: ['', [Validators.required, Validators.email, Validators.maxLength(254)]],
-      password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(72)]],
+      password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(72), maxUtf8Bytes(72)]],
       confirmPassword: ['', Validators.required],
     },
     { validators: passwordsMatch('password', 'confirmPassword') },

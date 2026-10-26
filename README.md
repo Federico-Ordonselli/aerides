@@ -35,6 +35,20 @@ docker compose up --build
 
 **Game search** needs a free RAWG API key: get one at [rawg.io/apidocs](https://rawg.io/apidocs) and set `RAWG_API_KEY` in `.env`. Without it everything else works, and the search box says the catalog is unavailable.
 
+## Live demo
+
+> **URL: _pending first deploy_** · users `giulia@example.com` (owner), `marco@example.com` (officer), `luca@example.com` (member), password `raidboard-demo`.
+> Free hosting: the first request after 15 idle minutes takes about a minute while the service wakes up.
+> Try it: log in as Luca in one browser and open "Raid: Vault of Glass", then as Giulia in another browser withdraw from the Tank slot: Luca is promoted and sees it live.
+
+The demo runs on [Render](https://render.com)'s free tier, from [`render.yaml`](render.yaml). It's a quick way to show the app; the real deployment (Azure, Terraform, CI) is Milestone 6.
+
+- **One service instead of two**: free Render services can't receive private-network traffic, so the usual nginx-in-front-of-the-backend layout would need two public services. Instead, [`deploy/render/Dockerfile`](deploy/render/Dockerfile) builds the Angular app into the backend's `static/` folder, and the `demo` Spring profile serves it (`SinglePageAppConfig`). App, API and WebSocket keep one origin, so the `SameSite=Strict` refresh cookie and `/ws` work exactly as behind nginx. Static files and Angular routes get their own public security chain (GET only, outside `/api`, `/ws`, `/actuator`); everything else still goes through the normal default-deny chain.
+- **No emails**: the free tier blocks SMTP ports, and a public demo shouldn't email addresses people type in. In the `demo` profile `LoggingMailSender` writes a log line instead of sending; templates, the `notifications` table and the exactly-once reminder logic run as usual.
+- **Database**: Render's free PostgreSQL, which expires after 30 days. Render gives a `postgresql://user:password@host/db` connection string; the image's entrypoint turns it into a JDBC URL.
+- **Demo data**: [`deploy/render/seed-demo.py`](deploy/render/seed-demo.py) creates the users, group and events above through the public API only: `python3 deploy/render/seed-demo.py <url>`.
+- Test the same image locally: `docker build -f deploy/render/Dockerfile -t raidboard-demo .`
+
 ## Local development
 
 Requirements: JDK 21, Node 24, Docker (for PostgreSQL and the integration tests).

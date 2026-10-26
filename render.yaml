@@ -1,0 +1,31 @@
+# Render Blueprint for the free public demo: one web service (app + API + WebSocket) and a free
+# PostgreSQL database. Render dashboard > New > Blueprint > pick this repository.
+# The free database expires after 30 days; the real deployment (Azure + Terraform) is Milestone 6.
+services:
+  - type: web
+    name: raidboard
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./deploy/render/Dockerfile
+    dockerContext: .
+    healthCheckPath: /actuator/health/readiness
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true # random 256-bit value, generated once by Render
+      # postgresql://user:password@host/db, turned into a JDBC URL by the image's entrypoint
+      - key: DATABASE_URL
+        fromDatabase: { name: raidboard-db, property: connectionString }
+      - key: DB_USERNAME
+        fromDatabase: { name: raidboard-db, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: raidboard-db, property: password }
+      - key: RAWG_API_KEY
+        sync: false # optional: set it in the dashboard to enable game search
+
+databases:
+  - name: raidboard-db
+    plan: free
+    region: frankfurt
+    databaseName: raidboard
+    postgresMajorVersion: "17"

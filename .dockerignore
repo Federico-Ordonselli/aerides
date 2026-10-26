@@ -1,0 +1,8 @@
+# Build context of deploy/render/Dockerfile is the repository root: keep secrets and build output out
+.env
+.git
+.playwright-mcp
+**/node_modules
+**/dist
+**/.angular
+**/target

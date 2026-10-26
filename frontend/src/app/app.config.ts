@@ -6,11 +6,9 @@ import {
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
-import Aura from '@primeuix/themes/aura';
 import { provideTranslateService } from '@ngx-translate/core';
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
-import { MessageService } from 'primeng/api';
-import { providePrimeNG } from 'primeng/config';
+import { MatIconRegistry } from '@angular/material/icon';
 import { firstValueFrom } from 'rxjs';
 
 import { routes } from './app.routes';
@@ -30,10 +28,10 @@ export const appConfig: ApplicationConfig = {
       loader: provideTranslateHttpLoader({ prefix: '/i18n/', suffix: '.json', useHttpBackend: true }),
       fallbackLang: 'it',
     }),
-    providePrimeNG({ theme: { preset: Aura, options: { darkModeSelector: '.app-dark' } } }),
-    MessageService,
     // Runs before the first navigation, so guards already know whether the user is logged in
     provideAppInitializer(() => {
+      // index.html loads the "Material Symbols Outlined" icon font
+      inject(MatIconRegistry).setDefaultFontSetClass('material-symbols-outlined');
       inject(LanguageService).init();
       return firstValueFrom(inject(AuthService).restoreSession());
     }),

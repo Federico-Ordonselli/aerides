@@ -1,33 +1,30 @@
-<header class="topbar">
+<mat-toolbar class="topbar">
   <a routerLink="/" class="brand">
-    <i class="pi pi-calendar" aria-hidden="true"></i>
+    <mat-icon aria-hidden="true">event_available</mat-icon>
     Raidboard
   </a>
 
-  <div class="topbar-actions">
-    <div class="language-switch" role="group" [attr.aria-label]="'layout.language' | translate">
-      @for (language of languages; track language) {
-        <p-button
-          [label]="language.toUpperCase()"
-          [text]="languageService.current() !== language"
-          size="small"
-          (onClick)="changeLanguage(language)"
-        />
-      }
-    </div>
+  <span class="spacer"></span>
 
-    @if (authService.currentUser(); as user) {
-      <span class="user-name" data-testid="current-user">{{ user.displayName }}</span>
+  <mat-button-toggle-group
+    hideSingleSelectionIndicator
+    [value]="languageService.current()"
+    (change)="changeLanguage($event.value)"
+    [attr.aria-label]="'layout.language' | translate"
+  >
+    @for (language of languages; track language) {
+      <mat-button-toggle [value]="language">{{ language.toUpperCase() }}</mat-button-toggle>
     }
-    <p-button
-      icon="pi pi-sign-out"
-      [label]="'auth.logout' | translate"
-      severity="secondary"
-      size="small"
-      (onClick)="logout()"
-    />
-  </div>
-</header>
+  </mat-button-toggle-group>
+
+  @if (authService.currentUser(); as user) {
+    <span class="user-name" data-testid="current-user">{{ user.displayName }}</span>
+  }
+  <button mat-button (click)="logout()">
+    <mat-icon>logout</mat-icon>
+    {{ 'auth.logout' | translate }}
+  </button>
+</mat-toolbar>
 
 <main class="content">
   <router-outlet />

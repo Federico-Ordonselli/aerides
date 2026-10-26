@@ -1,17 +1,38 @@
-@use 'primeicons/primeicons.css';
+// Angular Material 3 theme: mat.theme() defines the --mat-sys-* CSS variables
+// used by Material components and by our own styles. See https://material.angular.dev/guide/theming
+@use '@angular/material' as mat;
 
-:root {
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+html {
+  height: 100%;
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$violet-palette,
+        tertiary: mat.$magenta-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
 }
 
-html,
 body {
+  color-scheme: light;
+  background-color: var(--mat-sys-surface-container-low);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
   margin: 0;
   min-height: 100%;
-  background: var(--p-surface-50);
-  color: var(--p-text-color);
 }
 
 * {
   box-sizing: border-box;
+}
+
+// Inline error banner shown above a form (Material has no "alert" component)
+.form-alert {
+  padding: 0.75rem 1rem;
+  border-radius: var(--mat-sys-corner-small);
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
 }

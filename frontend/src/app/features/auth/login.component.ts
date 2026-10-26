@@ -1,19 +1,28 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
-import { ButtonModule } from 'primeng/button';
-import { CardModule } from 'primeng/card';
-import { InputTextModule } from 'primeng/inputtext';
-import { MessageModule } from 'primeng/message';
-import { PasswordModule } from 'primeng/password';
 
 import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, RouterLink, TranslatePipe, ButtonModule, CardModule, InputTextModule, MessageModule, PasswordModule],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    TranslatePipe,
+    MatButtonModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+  ],
   templateUrl: './login.component.html',
   styleUrl: './auth-page.scss',
 })
@@ -28,6 +37,7 @@ export class LoginComponent {
   });
   protected readonly submitting = signal(false);
   protected readonly errorKey = signal<string | null>(null);
+  protected readonly hidePassword = signal(true);
 
   protected submit(): void {
     if (this.form.invalid) {
@@ -40,7 +50,7 @@ export class LoginComponent {
       next: () => void this.router.navigateByUrl(this.safeReturnUrl()),
       error: (error: HttpErrorResponse) => {
         this.submitting.set(false);
-        this.errorKey.set(error.status === 401 ? 'auth.login.invalidCredentials' : 'errors.generic');
+        this.errorKey.set(loginErrorKey(error.status));
       },
     });
   }
@@ -50,4 +60,14 @@ export class LoginComponent {
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
     return returnUrl?.startsWith('/') && !returnUrl.startsWith('//') ? returnUrl : '/';
   }
+}
+
+function loginErrorKey(status: number): string {
+  if (status === 401) {
+    return 'auth.login.invalidCredentials';
+  }
+  if (status === 429) {
+    return 'auth.login.tooManyAttempts';
+  }
+  return 'errors.generic';
 }

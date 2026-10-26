@@ -1,4 +1,7 @@
 {
+  "common": {
+    "close": "Close"
+  },
   "auth": {
     "logout": "Log out",
     "fields": {
@@ -13,7 +16,8 @@
       "submit": "Log in",
       "invalidCredentials": "Invalid email or password",
       "noAccount": "Don't have an account?",
-      "toRegister": "Sign up"
+      "toRegister": "Sign up",
+      "tooManyAttempts": "Too many login attempts, try again in a minute"
     },
     "register": {
       "title": "Create an account",
@@ -21,12 +25,9 @@
       "submit": "Sign up",
       "emailTaken": "This email is already registered",
       "haveAccount": "Already have an account?",
-      "toLogin": "Log in",
-      "passwordPrompt": "Choose a password",
-      "passwordWeak": "Weak",
-      "passwordMedium": "Medium",
-      "passwordStrong": "Strong"
-    }
+      "toLogin": "Log in"
+    },
+    "togglePassword": "Show or hide password"
   },
   "validation": {
     "required": "This field is required",
@@ -35,7 +36,6 @@
     "passwordsMismatch": "Passwords don't match"
   },
   "errors": {
-    "title": "Error",
     "generic": "Something went wrong, please try again",
     "network": "Server unreachable, check your connection",
     "forbidden": "You don't have permission to do this",

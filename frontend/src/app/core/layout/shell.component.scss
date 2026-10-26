@@ -1,35 +1,24 @@
 .topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 1.5rem;
-  background: var(--p-content-background);
-  border-bottom: 1px solid var(--p-content-border-color);
+  gap: 0.75rem;
+  background: var(--mat-sys-surface);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: var(--p-primary-color);
+  font: var(--mat-sys-title-large);
+  color: var(--mat-sys-primary);
   text-decoration: none;
 }
 
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.language-switch {
-  display: flex;
+.spacer {
+  flex: 1;
 }
 
 .user-name {
-  font-weight: 600;
+  font: var(--mat-sys-title-small);
 }
 
 .content {
@@ -39,11 +28,11 @@
 }
 
 @media (max-width: 600px) {
-  .topbar {
-    padding: 0.75rem 1rem;
-  }
-
   .user-name {
     display: none;
+  }
+
+  .content {
+    padding: 1rem;
   }
 }

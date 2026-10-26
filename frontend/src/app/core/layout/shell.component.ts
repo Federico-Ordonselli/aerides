@@ -1,7 +1,10 @@
 import { Component, inject } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatIconModule } from '@angular/material/icon';
+import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
-import { ButtonModule } from 'primeng/button';
 
 import { AuthService } from '../auth/auth.service';
 import { Language, LanguageService, SUPPORTED_LANGUAGES } from '../i18n/language.service';
@@ -9,7 +12,15 @@ import { Language, LanguageService, SUPPORTED_LANGUAGES } from '../i18n/language
 /** Layout of every authenticated page: top bar + routed content. */
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, TranslatePipe, ButtonModule],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    TranslatePipe,
+    MatToolbarModule,
+    MatButtonModule,
+    MatButtonToggleModule,
+    MatIconModule,
+  ],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
 })

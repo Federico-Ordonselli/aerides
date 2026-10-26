@@ -1,4 +1,7 @@
 {
+  "common": {
+    "close": "Chiudi"
+  },
   "auth": {
     "logout": "Esci",
     "fields": {
@@ -13,7 +16,8 @@
       "submit": "Accedi",
       "invalidCredentials": "Email o password non validi",
       "noAccount": "Non hai un account?",
-      "toRegister": "Registrati"
+      "toRegister": "Registrati",
+      "tooManyAttempts": "Troppi tentativi di accesso, riprova tra un minuto"
     },
     "register": {
       "title": "Crea un account",
@@ -21,12 +25,9 @@
       "submit": "Registrati",
       "emailTaken": "Questa email è già registrata",
       "haveAccount": "Hai già un account?",
-      "toLogin": "Accedi",
-      "passwordPrompt": "Scegli una password",
-      "passwordWeak": "Debole",
-      "passwordMedium": "Media",
-      "passwordStrong": "Forte"
-    }
+      "toLogin": "Accedi"
+    },
+    "togglePassword": "Mostra o nascondi la password"
   },
   "validation": {
     "required": "Campo obbligatorio",
@@ -35,7 +36,6 @@
     "passwordsMismatch": "Le password non coincidono"
   },
   "errors": {
-    "title": "Errore",
     "generic": "Qualcosa è andato storto, riprova",
     "network": "Server non raggiungibile, controlla la connessione",
     "forbidden": "Non hai i permessi per questa operazione",

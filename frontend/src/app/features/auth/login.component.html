@@ -1,42 +1,51 @@
 <div class="auth-page">
-  <p-card class="auth-card">
-    <ng-template #title>{{ 'auth.login.title' | translate }}</ng-template>
-    <ng-template #subtitle>{{ 'auth.login.subtitle' | translate }}</ng-template>
+  <mat-card class="auth-card" appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>{{ 'auth.login.title' | translate }}</mat-card-title>
+      <mat-card-subtitle>{{ 'auth.login.subtitle' | translate }}</mat-card-subtitle>
+    </mat-card-header>
 
-    <form [formGroup]="form" (ngSubmit)="submit()" class="auth-form" novalidate>
-      @if (errorKey(); as key) {
-        <p-message severity="error" data-testid="login-error">{{ key | translate }}</p-message>
-      }
-
-      <div class="field">
-        <label for="email">{{ 'auth.fields.email' | translate }}</label>
-        <input pInputText id="email" type="email" formControlName="email" autocomplete="email" />
-        @if (form.controls.email.touched && form.controls.email.invalid) {
-          <small class="field-error">{{ 'validation.email' | translate }}</small>
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="submit()" class="auth-form" novalidate>
+        @if (errorKey(); as key) {
+          <div class="form-alert" role="alert" data-testid="login-error">{{ key | translate }}</div>
         }
-      </div>
 
-      <div class="field">
-        <label for="password">{{ 'auth.fields.password' | translate }}</label>
-        <p-password
-          inputId="password"
-          formControlName="password"
-          [feedback]="false"
-          [toggleMask]="true"
-          autocomplete="current-password"
-          fluid
-        />
-        @if (form.controls.password.touched && form.controls.password.invalid) {
-          <small class="field-error">{{ 'validation.required' | translate }}</small>
-        }
-      </div>
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'auth.fields.email' | translate }}</mat-label>
+          <input matInput type="email" formControlName="email" autocomplete="email" />
+          <mat-error>{{ 'validation.email' | translate }}</mat-error>
+        </mat-form-field>
 
-      <p-button type="submit" [label]="'auth.login.submit' | translate" [loading]="submitting()" fluid />
-    </form>
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'auth.fields.password' | translate }}</mat-label>
+          <input
+            matInput
+            [type]="hidePassword() ? 'password' : 'text'"
+            formControlName="password"
+            autocomplete="current-password"
+          />
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            (click)="hidePassword.set(!hidePassword())"
+            [attr.aria-label]="'auth.togglePassword' | translate"
+          >
+            <mat-icon>{{ hidePassword() ? 'visibility' : 'visibility_off' }}</mat-icon>
+          </button>
+          <mat-error>{{ 'validation.required' | translate }}</mat-error>
+        </mat-form-field>
 
-    <p class="auth-switch">
-      {{ 'auth.login.noAccount' | translate }}
-      <a routerLink="/register">{{ 'auth.login.toRegister' | translate }}</a>
-    </p>
-  </p-card>
+        <button mat-flat-button type="submit" [disabled]="submitting()">
+          {{ 'auth.login.submit' | translate }}
+        </button>
+      </form>
+
+      <p class="auth-switch">
+        {{ 'auth.login.noAccount' | translate }}
+        <a routerLink="/register">{{ 'auth.login.toRegister' | translate }}</a>
+      </p>
+    </mat-card-content>
+  </mat-card>
 </div>

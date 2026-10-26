@@ -51,13 +51,13 @@ function event(overrides: Partial<EventDetail>): EventDetail {
 
 describe('EventDetailComponent', () => {
   let eventsService: { get: jest.Mock };
-  let realtime: { watch: jest.Mock };
+  let realtime: { watch: jest.Mock; accessRevoked$: Subject<unknown> };
   let updates: Subject<EventUpdate>;
 
   async function render(detail: EventDetail, myRole: MembershipRole): Promise<HTMLElement> {
     eventsService = { get: jest.fn((): Observable<EventDetail> => of(detail)) };
     updates = new Subject<EventUpdate>();
-    realtime = { watch: jest.fn(() => updates) };
+    realtime = { watch: jest.fn(() => updates), accessRevoked$: new Subject<unknown>() };
     TestBed.configureTestingModule({
       imports: [EventDetailComponent],
       providers: [
@@ -123,6 +123,19 @@ describe('EventDetailComponent', () => {
     expect(eventsService.get).toHaveBeenCalledTimes(2);
   });
 
+  it('stops watching the event when access to the group is revoked', async () => {
+    await render(event({}), 'MEMBER');
+    expect(updates.observed).toBe(true);
+    // The user was removed from the group: the event is no longer readable
+    eventsService.get.mockReturnValue(throwError(() => new Error('404')));
+
+    realtime.accessRevoked$.next({});
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(eventsService.get).toHaveBeenCalledTimes(2);
+    expect(updates.observed).toBe(false);
+  });
+
   it('does not subscribe when the event could not be loaded', async () => {
     eventsService = { get: jest.fn() };
     TestBed.configureTestingModule({
@@ -131,7 +144,7 @@ describe('EventDetailComponent', () => {
         provideRouter([]),
         provideTranslateService(),
         { provide: EventsService, useValue: { get: () => throwError(() => new Error('404')) } },
-        { provide: RealtimeService, useValue: (realtime = { watch: jest.fn() }) },
+        { provide: RealtimeService, useValue: (realtime = { watch: jest.fn(), accessRevoked$: new Subject() }) },
         { provide: GroupsService, useValue: { get: () => of({ id: 1, myRole: 'MEMBER' }) } },
         { provide: AuthService, useValue: { currentUser: signal({ id: ME }) } },
       ],

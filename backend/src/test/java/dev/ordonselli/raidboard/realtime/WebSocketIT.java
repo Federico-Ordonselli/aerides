@@ -10,6 +10,7 @@ import java.lang.reflect.Type;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -158,6 +159,51 @@ class WebSocketIT extends AbstractIntegrationTest {
                 .containsEntry("eventTitle", "Raid night");
     }
 
+    @Test
+    void aRemovedMemberIsDisconnectedAndLosesTheirSubscriptions() throws Exception {
+        Long eventId = idOf(createPublishedEvent(owner, group, eventJson(NEXT_WEEK, false, 0, "Tank", 2)));
+        String topic = "/topic/events/" + eventId;
+        StompSession ownerSession = connect(owner.accessToken());
+        StompSession memberSession = connect(member.accessToken());
+        subscribe(ownerSession, topic);
+        subscribe(memberSession, topic);
+        await().atMost(Duration.ofSeconds(TIMEOUT_SECONDS)).until(() -> brokerSubscriptionCount(topic) == 2);
+
+        mockMvc.perform(delete("/api/groups/{g}/members/{u}", group.id(), member.id()).with(as(owner)))
+                .andExpect(status().isNoContent());
+
+        assertThat(nextError()).isEqualTo(RevokedAccessListener.ACCESS_REVOKED);
+        await().atMost(Duration.ofSeconds(TIMEOUT_SECONDS)).until(() -> !memberSession.isConnected());
+        // Only the member's subscription is gone: the owner keeps listening
+        await().atMost(Duration.ofSeconds(TIMEOUT_SECONDS)).until(() -> brokerSubscriptionCount(topic) == 1);
+        assertThat(ownerSession.isConnected()).isTrue();
+    }
+
+    @Test
+    void aMemberWhoLeavesIsDisconnected() throws Exception {
+        StompSession session = connect(member.accessToken());
+
+        mockMvc.perform(delete("/api/groups/{g}/members/me", group.id()).with(as(member)))
+                .andExpect(status().isNoContent());
+
+        assertThat(nextError()).isEqualTo(RevokedAccessListener.ACCESS_REVOKED);
+        await().atMost(Duration.ofSeconds(TIMEOUT_SECONDS)).until(() -> !session.isConnected());
+    }
+
+    @Test
+    void anOfficerDemotedToMemberLosesTheirDraftSubscription() throws Exception {
+        changeRole(owner, group, member, "OFFICER");
+        String draftTopic = "/topic/events/" + idOf(createEvent(owner, group, eventJson(NEXT_WEEK, false, 0, "Tank", 2)));
+        StompSession session = connect(member.accessToken());
+        subscribe(session, draftTopic);
+        awaitBrokerSubscription(draftTopic);
+
+        changeRole(owner, group, member, "MEMBER");
+
+        assertThat(nextError()).isEqualTo(RevokedAccessListener.ACCESS_REVOKED);
+        await().atMost(Duration.ofSeconds(TIMEOUT_SECONDS)).until(() -> brokerSubscriptionCount(draftTopic) == 0);
+    }
+
     private StompSession connect(String accessToken) throws Exception {
         StompHeaders connectHeaders = new StompHeaders();
         if (accessToken != null) {
@@ -204,11 +250,17 @@ class WebSocketIT extends AbstractIntegrationTest {
      * really has the subscription avoids publishing before anyone listens.
      */
     private void awaitBrokerSubscription(String brokerDestination) {
+        await().atMost(Duration.ofSeconds(TIMEOUT_SECONDS)).until(() -> brokerSubscriptionCount(brokerDestination) > 0);
+    }
+
+    /** How many subscriptions the broker would deliver a message on this destination to. */
+    private int brokerSubscriptionCount(String brokerDestination) {
         SimpMessageHeaderAccessor headers = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);
         headers.setDestination(brokerDestination);
         var probe = MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
-        await().atMost(Duration.ofSeconds(TIMEOUT_SECONDS))
-                .until(() -> !brokerMessageHandler.getSubscriptionRegistry().findSubscriptions(probe).isEmpty());
+        return brokerMessageHandler.getSubscriptionRegistry().findSubscriptions(probe).values().stream()
+                .mapToInt(List::size)
+                .sum();
     }
 
     /** User queues are rewritten per session: /user/queue/x becomes /queue/x-user{sessionId}. */

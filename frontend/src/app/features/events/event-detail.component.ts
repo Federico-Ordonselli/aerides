@@ -9,7 +9,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { distinctUntilChanged, EMPTY, filter, Observable, switchMap } from 'rxjs';
+import { distinctUntilChanged, EMPTY, filter, merge, Observable, switchMap } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
 import { LanguageService } from '../../core/i18n/language.service';
@@ -80,18 +80,19 @@ export class EventDetailComponent {
   /**
    * Live updates: when anyone changes this event or its sign-ups, the server says so on the event's
    * topic and the page reloads it. Subscribed only once the event has loaded: if the user can't read
-   * it, the server would refuse the subscription.
+   * it, the server would refuse the subscription. If the user loses access to the group, the reload
+   * fails and the page stops watching.
    */
   private readonly liveEventId = computed(() => (this.event.hasValue() ? this.eventId() : null));
 
   constructor() {
     const realtime = inject(RealtimeService);
-    toObservable(this.liveEventId)
-      .pipe(
-        distinctUntilChanged(),
-        switchMap((eventId) => (eventId === null ? EMPTY : realtime.watch<EventUpdate>(eventTopic(eventId)))),
-        takeUntilDestroyed(),
-      )
+    const updates = toObservable(this.liveEventId).pipe(
+      distinctUntilChanged(),
+      switchMap((eventId) => (eventId === null ? EMPTY : realtime.watch<EventUpdate>(eventTopic(eventId)))),
+    );
+    merge(updates, realtime.accessRevoked$)
+      .pipe(takeUntilDestroyed())
       .subscribe(() => this.event.reload());
   }
 

@@ -77,6 +77,18 @@ describe('RealtimeService', () => {
     expect(auth.refresh).toHaveBeenCalledTimes(1);
   });
 
+  it('announces when the server closed the connection because access was revoked', () => {
+    const service = create();
+    const revoked: unknown[] = [];
+    service.accessRevoked$.subscribe((frame) => revoked.push(frame));
+
+    stomp.stompErrors$.next({ headers: { message: 'Subscription not allowed' } } as unknown as IFrame);
+    stomp.stompErrors$.next({ headers: { message: 'Access revoked' } } as unknown as IFrame);
+
+    expect(revoked).toHaveLength(1);
+    expect(auth.refresh).not.toHaveBeenCalled();
+  });
+
   it('parses the JSON body of the messages', () => {
     const messages = new Subject<IMessage>();
     stomp.watch.mockReturnValue(messages);

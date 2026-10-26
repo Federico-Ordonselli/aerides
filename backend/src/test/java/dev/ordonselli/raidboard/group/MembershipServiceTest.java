@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mapstruct.factory.Mappers;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import dev.ordonselli.raidboard.audit.AuditAction;
@@ -37,6 +38,8 @@ class MembershipServiceTest {
     private MembershipRepository membershipRepository;
     @Mock
     private AuditService auditService;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     private MembershipService membershipService;
     private Group group;
@@ -45,7 +48,7 @@ class MembershipServiceTest {
     void setUp() {
         // The real MapStruct implementation, generated at compile time
         membershipService = new MembershipService(membershipRepository, Mappers.getMapper(MembershipMapper.class),
-                auditService);
+                auditService, eventPublisher);
         group = new Group("Raid", "raid", null, "ABCDEFGHJK");
         ReflectionTestUtils.setField(group, "id", GROUP_ID);
     }
@@ -60,6 +63,38 @@ class MembershipServiceTest {
         assertThat(response.role()).isEqualTo(MembershipRole.OFFICER);
         verify(auditService).record(GROUP_ID, OWNER_ID, AuditAction.MEMBER_ROLE_CHANGED, AuditEntityType.MEMBERSHIP,
                 member.getId(), Map.of("userId", MEMBER_ID, "from", MembershipRole.MEMBER, "to", MembershipRole.OFFICER));
+        verifyNoInteractions(eventPublisher); // gaining access never closes WebSocket sessions
+    }
+
+    @Test
+    void demotingAnOfficerRevokesTheirAccessToDrafts() {
+        when(membershipRepository.findByGroupIdAndUserId(GROUP_ID, MEMBER_ID))
+                .thenReturn(Optional.of(membership(MEMBER_ID, MembershipRole.OFFICER)));
+
+        membershipService.changeRole(GROUP_ID, OWNER_ID, MEMBER_ID, MembershipRole.MEMBER);
+
+        verify(eventPublisher).publishEvent(new GroupAccessRevokedEvent(GROUP_ID, MEMBER_ID));
+    }
+
+    @Test
+    void removingAMemberRevokesTheirAccess() {
+        Membership member = membership(MEMBER_ID, MembershipRole.MEMBER);
+        when(membershipRepository.findByGroupIdAndUserId(GROUP_ID, MEMBER_ID)).thenReturn(Optional.of(member));
+
+        membershipService.removeMember(GROUP_ID, OWNER_ID, MEMBER_ID);
+
+        verify(membershipRepository).delete(member);
+        verify(eventPublisher).publishEvent(new GroupAccessRevokedEvent(GROUP_ID, MEMBER_ID));
+    }
+
+    @Test
+    void leavingRevokesAccess() {
+        when(membershipRepository.findByGroupIdAndUserId(GROUP_ID, MEMBER_ID))
+                .thenReturn(Optional.of(membership(MEMBER_ID, MembershipRole.MEMBER)));
+
+        membershipService.leave(GROUP_ID, MEMBER_ID);
+
+        verify(eventPublisher).publishEvent(new GroupAccessRevokedEvent(GROUP_ID, MEMBER_ID));
     }
 
     @Test
@@ -93,6 +128,7 @@ class MembershipServiceTest {
         assertThatThrownBy(() -> membershipService.leave(GROUP_ID, OWNER_ID))
                 .isInstanceOf(BusinessRuleException.class);
         verify(membershipRepository, never()).delete(any());
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test

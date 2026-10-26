@@ -4,6 +4,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,12 +25,14 @@ public class MembershipService {
     private final MembershipRepository membershipRepository;
     private final MembershipMapper membershipMapper;
     private final AuditService auditService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public MembershipService(MembershipRepository membershipRepository, MembershipMapper membershipMapper,
-            AuditService auditService) {
+            AuditService auditService, ApplicationEventPublisher eventPublisher) {
         this.membershipRepository = membershipRepository;
         this.membershipMapper = membershipMapper;
         this.auditService = auditService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -55,6 +58,10 @@ public class MembershipService {
             auditService.record(groupId, actorId, AuditAction.MEMBER_ROLE_CHANGED, AuditEntityType.MEMBERSHIP,
                     target.getId(), Map.of("userId", targetUserId, "from", previousRole, "to", newRole));
         }
+        // An officer demoted to member can no longer read drafts
+        if (previousRole.isAtLeast(MembershipRole.OFFICER) && !newRole.isAtLeast(MembershipRole.OFFICER)) {
+            eventPublisher.publishEvent(new GroupAccessRevokedEvent(groupId, targetUserId));
+        }
         return membershipMapper.toMemberResponse(target);
     }
 
@@ -67,6 +74,7 @@ public class MembershipService {
         auditService.record(groupId, actorId, AuditAction.MEMBER_REMOVED, AuditEntityType.MEMBERSHIP, target.getId(),
                 Map.of("userId", targetUserId));
         membershipRepository.delete(target);
+        eventPublisher.publishEvent(new GroupAccessRevokedEvent(groupId, targetUserId));
     }
 
     @Transactional
@@ -78,6 +86,7 @@ public class MembershipService {
         auditService.record(groupId, userId, AuditAction.MEMBER_LEFT, AuditEntityType.MEMBERSHIP,
                 membership.getId());
         membershipRepository.delete(membership);
+        eventPublisher.publishEvent(new GroupAccessRevokedEvent(groupId, userId));
     }
 
     private Membership requireMembership(Long groupId, Long userId) {

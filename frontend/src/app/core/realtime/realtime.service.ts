@@ -9,6 +9,8 @@ export const RX_STOMP = new InjectionToken<RxStomp>('RX_STOMP', { factory: () =>
 
 /** Same message the backend puts in the ERROR frame when the access token is missing or expired. */
 const AUTH_ERROR = 'Authentication required';
+/** Sent by the backend when the user lost access to a group (removed, left, demoted): it closes the connection. */
+const ACCESS_REVOKED = 'Access revoked';
 
 /**
  * One WebSocket (STOMP) connection for the whole app, open while the user is logged in.
@@ -23,6 +25,15 @@ const AUTH_ERROR = 'Authentication required';
 export class RealtimeService {
   private readonly stomp = inject(RX_STOMP);
   private readonly authService = inject(AuthService);
+
+  /**
+   * Emits when the server closed the connection because the user lost access to a group. Pages that
+   * watch a group's data reload it: the REST call fails, and they stop watching before the reconnect,
+   * so the refused subscription is not retried forever.
+   */
+  readonly accessRevoked$: Observable<unknown> = this.stomp.stompErrors$.pipe(
+    filter((frame) => frame.headers['message'] === ACCESS_REVOKED),
+  );
 
   constructor() {
     this.stomp.configure({

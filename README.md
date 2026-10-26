@@ -5,6 +5,7 @@ Raidboard is a multi-tenant web app where gaming groups (guilds, clans, tabletop
 Under the hood it is a **resource-booking business application**: roles, approvals, notifications, audit log and reporting.
 
 > 🚧 Work in progress, built milestone by milestone. See [Roadmap](#roadmap).
+> Full scope, domain model and business rules: [docs/SPEC.md](docs/SPEC.md).
 
 ## Tech stack
 

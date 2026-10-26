@@ -47,7 +47,7 @@ docker compose up -d postgres mailpit
 cd backend
 SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
 
-# 3. Frontend on :4200, proxying /api to the backend
+# 3. Frontend on :4200, proxying /api and /ws (WebSocket) to the backend
 cd frontend
 npm install
 npm start
@@ -78,9 +78,11 @@ backend/   Spring Boot API, package by feature under dev.ordonselli.raidboard
   event/     events, slots, weekly series, paginated list with JPA Specifications
   signup/    sign-ups, waitlist promotion, approvals (row locks against overbooking)
   audit/     audit log written in the same transaction as each change
+  realtime/  STOMP over WebSocket: authentication on CONNECT, authorization on SUBSCRIBE, live messages
+  notification/  emails (Thymeleaf, IT/EN), reminder job, Discord webhook
   common/    error handling (ProblemDetail), rate limiting, validation, OpenAPI, cache, clock
 frontend/  Angular app
-  core/      auth (service, interceptor, guards), HTTP error handling, i18n, layout
+  core/      auth (service, interceptor, guards), HTTP error handling, i18n, layout, realtime (STOMP client)
   shared/    reusable validators and components (empty state, confirm dialog)
   features/  one folder per feature, lazy-loaded (auth, home, groups, games, events)
 ```
@@ -97,6 +99,7 @@ frontend/  Angular app
   - The buckets live **in memory**, in a bounded Caffeine cache, so each backend instance counts on its own, and a flood of distinct keys can push old buckets out of the cache. A production deployment would move this to a shared store (Redis via Bucket4j's distributed backends) or to the API gateway / ingress.
   - The per-account limit is deliberately looser than the per-IP ones: whoever can trigger it can also block the real user from logging in for a while. Strict lockouts trade brute-force protection for that denial-of-service risk.
   - The client IP comes from `X-Forwarded-For`, which Spring trusts only when it's set by a proxy on a private network. nginx **overwrites** that header with the real client address, so a client can't fake a new IP on every request. Locally the backend port is published on `127.0.0.1` only. In production the backend must not be publicly reachable, and `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` should list only the real edge proxy (e.g. Azure ingress), which is the one setting the header.
+- **WebSocket**: browsers can't send an `Authorization` header with the WebSocket handshake, so `/ws` itself is public and the checks happen on the STOMP frames. `CONNECT` must carry a valid access token (same validation as the REST API); `SUBSCRIBE` is allowed only to the user's own notification queue and to events they could read over REST (members of the group, drafts for officers only); `SEND` is never allowed, every change goes through the REST API. A refused frame gets an `ERROR` and the connection is closed. The handshake is limited to the configured origins.
 - **Input bounds**: passwords are limited in **bytes** as well as characters (`@MaxUtf8Bytes(72)`), because BCrypt rejects anything over 72 bytes and `é` is one character but two bytes. Login fields have maximum sizes, because the email becomes part of a rate-limit key held in memory.
 
 ### Group access rules
@@ -126,11 +129,21 @@ Every group-scoped endpoint is protected with `@PreAuthorize("@groupSecurity.has
 
 - **No overbooking under concurrency** (business rule 4): a sign-up locks its slot row with `SELECT ... FOR UPDATE` (`@Lock(PESSIMISTIC_WRITE)`) before counting the confirmed seats, so parallel requests for the same slot run one after the other. `SignupConcurrencyIT` fires 20 parallel sign-ups at a 3-seat slot and checks that exactly 3 are confirmed and every position is unique; without the lock the same test ends with 10 confirmed. Withdraw, approve and capacity changes take the same lock, and the sign-up row is read only after it, so its status is current.
 - **One active sign-up per user per event** is enforced by a partial unique index in PostgreSQL, which also covers two parallel requests for *different* slots (they don't share a lock).
-- **Waitlist**: a full slot puts the user on the waitlist, in FIFO order by `position`. When a confirmed user withdraws, or an officer adds seats, the first waitlisted users are promoted in the same transaction, and a `SignupPromotedEvent` is published after the commit (`@TransactionalEventListener`); Milestone 4 turns it into an email and a WebSocket message.
+- **Waitlist**: a full slot puts the user on the waitlist, in FIFO order by `position`. When a confirmed user withdraws, or an officer adds seats, the first waitlisted users are promoted in the same transaction, and a `SignupPromotedEvent` is published (see [Real-time and notifications](#real-time-and-notifications)).
 - **Withdrawal deadline** (rule 5): confirmed users can't withdraw after `startsAt - withdrawDeadlineHours`. Waitlisted and pending users hold no seat, so they can always leave.
 - **Editing safely**: the client sends back the `version` it loaded, and the update is refused with 409 if the event changed in the meantime. Every update also forces a version increment, so slot-only changes are covered too. Capacity can't go below the confirmed participants, and a slot with active sign-ups can't be removed.
 - **Weekly series**: a series is stored as real events sharing a `series_id`, because sign-ups, reminders and statistics all need real rows. Weeks are added in the organizer's time zone, so "Thursday 21:00 in Rome" stays at 21:00 after the daylight saving change. Editing or cancelling acts on one occurrence.
 - **Calendar**: FullCalendar (MIT packages only) is loaded with `@defer`, in its own chunk, only when the calendar view is opened; it asks the API only for the visible date range.
+
+## Real-time and notifications
+
+Services publish domain events (`EventChangedEvent`, `SignupPromotedEvent`, `EventPublishedEvent`, `EventAlmostFullEvent`) inside their transaction. Listeners react with `@TransactionalEventListener`, i.e. **only after the commit**: nobody is told about a change that was rolled back. Services don't know about WebSocket, email or Discord.
+
+- **Live updates** (STOMP over WebSocket, in-memory broker): every change to an event or its sign-ups sends `{eventId, type}` on `/topic/events/{id}`, and the open pages reload the event over REST. The message carries no data on purpose: the event detail differs per user (their own sign-up, their permissions), so one shared copy wouldn't fit everyone, and REST stays the single source of truth. A promoted user also gets a personal message on `/user/queue/notifications`, shown as a toast.
+- **Promotion email** (rule 3): sent `@Async` after the commit, so the user who withdrew doesn't wait for the SMTP server. Written in the recipient's language (Thymeleaf templates + `messages_*.properties`).
+- **Reminders exactly once** (rule 7): a job runs every 5 minutes and emails the confirmed participants of published events starting within 24 hours. "Exactly once" is guaranteed by PostgreSQL, not by timing: each email first inserts a `notifications` row with `ON CONFLICT (user_id, dedup_key) DO NOTHING`, and only the run that inserted it sends the email. `NotificationIT` runs the job twice in parallel and checks there is one email; without the check it gets two. A failed send is marked `FAILED` and not retried (a late duplicate reminder is worse than a missing one).
+- **Discord** (rule 9): if the group has a webhook, a message is posted when an event is published and when a sign-up leaves exactly one free seat. It runs in the background and every error is logged and swallowed, so Discord being down never breaks the main flow. Mentions are disabled (`allowed_mentions`), so an event called "@everyone" pings nobody, and the webhook URL (a secret) is never logged.
+- **Trade-offs**: the in-memory broker works for a single backend instance; with more, a broker relay (RabbitMQ) would be needed. An open WebSocket keeps the permissions checked at subscription time until it reconnects. Emails use one time zone for everyone (`APP_TIME_ZONE`), because users don't have their own yet.
 
 ## Configuration
 
@@ -141,7 +154,7 @@ Everything that changes between environments comes from environment variables. S
 - [x] **1. Foundation**: monorepo, database schema (Flyway), authentication with JWT + refresh-token rotation, error handling, Swagger, Angular shell with login and register
 - [x] **2. Groups and games**: group CRUD, invite codes, member roles, audit log, RAWG game catalog
 - [x] **3. Events and sign-ups**: slots, waitlist promotion, concurrency-safe sign-ups, recurrence, calendar
-- [ ] **4. Real-time and notifications**: WebSocket updates, reminder emails, Discord webhooks
+- [x] **4. Real-time and notifications**: WebSocket updates, reminder emails, Discord webhooks
 - [ ] **5. Dashboard and polish**: statistics, audit log page, responsive layout
 - [ ] **6. Quality and delivery**: Playwright e2e, GitHub Actions, Terraform for Azure, demo data
 
@@ -154,4 +167,7 @@ Tracked improvements that are not bugs, deliberately left for later:
 - **Edit a whole weekly series**: today editing and cancelling act on one occurrence at a time.
 - **Sign-ups of removed members**: a member who leaves or is removed keeps their sign-ups; they should be withdrawn (and the waitlist promoted) in the same transaction.
 - **Lock timeout on slot rows**: a sign-up waits as long as needed for the slot lock. A `lock_timeout` would turn a stuck transaction into a quick "try again" error.
+- **Retry failed emails**: notifications marked `FAILED` (SMTP down) are never retried; a retry with a cut-off (e.g. not after the event has started) would recover them.
+- **Per-user time zone**: emails write dates in `APP_TIME_ZONE`; users could store their own zone, like their language.
+- **Close WebSockets on permission changes**: a member removed from a group keeps receiving that group's event updates until their socket reconnects.
 - **Calendar styles out of the initial bundle**: FullCalendar's CSS (~30 kB) is a global stylesheet; it could be loaded together with the deferred calendar chunk.

@@ -1,10 +1,12 @@
-import { signal } from '@angular/core';
+import { ApplicationRef, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { Observable, of, Subject, throwError } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { EventUpdate } from '../../core/realtime/realtime.models';
+import { RealtimeService } from '../../core/realtime/realtime.service';
 import { MembershipRole } from '../groups/group.models';
 import { GroupsService } from '../groups/groups.service';
 import { EventDetailComponent } from './event-detail.component';
@@ -48,13 +50,21 @@ function event(overrides: Partial<EventDetail>): EventDetail {
 }
 
 describe('EventDetailComponent', () => {
+  let eventsService: { get: jest.Mock };
+  let realtime: { watch: jest.Mock };
+  let updates: Subject<EventUpdate>;
+
   async function render(detail: EventDetail, myRole: MembershipRole): Promise<HTMLElement> {
+    eventsService = { get: jest.fn((): Observable<EventDetail> => of(detail)) };
+    updates = new Subject<EventUpdate>();
+    realtime = { watch: jest.fn(() => updates) };
     TestBed.configureTestingModule({
       imports: [EventDetailComponent],
       providers: [
         provideRouter([]),
         provideTranslateService(),
-        { provide: EventsService, useValue: { get: () => of(detail) } },
+        { provide: EventsService, useValue: eventsService },
+        { provide: RealtimeService, useValue: realtime },
         { provide: GroupsService, useValue: { get: () => of({ id: 1, myRole }) } },
         { provide: AuthService, useValue: { currentUser: signal({ id: ME }) } },
       ],
@@ -100,5 +110,37 @@ describe('EventDetailComponent', () => {
     expect(element.querySelector('[data-testid="publish-event"]')).not.toBeNull();
     // A draft is not open for sign-ups
     expect(element.querySelector('[data-testid="sign-up"]')).toBeNull();
+  });
+
+  it('listens to the event topic and reloads the event when the server announces a change', async () => {
+    await render(event({}), 'MEMBER');
+    expect(realtime.watch).toHaveBeenCalledWith('/topic/events/5');
+    expect(eventsService.get).toHaveBeenCalledTimes(1);
+
+    updates.next({ eventId: 5, type: 'SIGNUPS' });
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(eventsService.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not subscribe when the event could not be loaded', async () => {
+    eventsService = { get: jest.fn() };
+    TestBed.configureTestingModule({
+      imports: [EventDetailComponent],
+      providers: [
+        provideRouter([]),
+        provideTranslateService(),
+        { provide: EventsService, useValue: { get: () => throwError(() => new Error('404')) } },
+        { provide: RealtimeService, useValue: (realtime = { watch: jest.fn() }) },
+        { provide: GroupsService, useValue: { get: () => of({ id: 1, myRole: 'MEMBER' }) } },
+        { provide: AuthService, useValue: { currentUser: signal({ id: ME }) } },
+      ],
+    });
+    const fixture = TestBed.createComponent(EventDetailComponent);
+    fixture.componentRef.setInput('groupId', 1);
+    fixture.componentRef.setInput('eventId', 5);
+    await fixture.whenStable();
+
+    expect(realtime.watch).not.toHaveBeenCalled();
   });
 });

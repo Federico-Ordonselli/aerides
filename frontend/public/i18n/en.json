@@ -48,6 +48,10 @@
     "forbidden": "You don't have permission to do this",
     "server": "Server error, please try again later"
   },
+  "realtime": {
+    "promoted": "A seat opened up: you are now confirmed for “{{title}}”",
+    "open": "Open"
+  },
   "layout": {
     "language": "Language",
     "groups": "Groups"

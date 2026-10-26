@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, input, numberAttribute } from '@angular/core';
-import { rxResource } from '@angular/core/rxjs-interop';
+import { rxResource, takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,10 +9,12 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { filter, Observable, switchMap } from 'rxjs';
+import { distinctUntilChanged, EMPTY, filter, Observable, switchMap } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
 import { LanguageService } from '../../core/i18n/language.service';
+import { eventTopic, EventUpdate } from '../../core/realtime/realtime.models';
+import { RealtimeService } from '../../core/realtime/realtime.service';
 import { confirmAction } from '../../shared/components/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state.component';
 import { hasRole } from '../groups/group.models';
@@ -74,6 +76,24 @@ export class EventDetailComponent {
     const slot = this.mySlot();
     return signup?.status === 'WAITLISTED' && slot ? slot.waitlisted.findIndex((s) => s.id === signup.id) + 1 : 0;
   });
+
+  /**
+   * Live updates: when anyone changes this event or its sign-ups, the server says so on the event's
+   * topic and the page reloads it. Subscribed only once the event has loaded: if the user can't read
+   * it, the server would refuse the subscription.
+   */
+  private readonly liveEventId = computed(() => (this.event.hasValue() ? this.eventId() : null));
+
+  constructor() {
+    const realtime = inject(RealtimeService);
+    toObservable(this.liveEventId)
+      .pipe(
+        distinctUntilChanged(),
+        switchMap((eventId) => (eventId === null ? EMPTY : realtime.watch<EventUpdate>(eventTopic(eventId)))),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => this.event.reload());
+  }
 
   protected isEditable(event: EventDetail): boolean {
     return isEditable(event.status);

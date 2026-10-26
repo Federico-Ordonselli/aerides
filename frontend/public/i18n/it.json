@@ -48,6 +48,10 @@
     "forbidden": "Non hai i permessi per questa operazione",
     "server": "Errore del server, riprova più tardi"
   },
+  "realtime": {
+    "promoted": "Si è liberato un posto: ora sei confermato per «{{title}}»",
+    "open": "Apri"
+  },
   "layout": {
     "language": "Lingua",
     "groups": "Gruppi"

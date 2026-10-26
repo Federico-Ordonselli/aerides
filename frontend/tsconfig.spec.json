@@ -1,0 +1,9 @@
+/* TypeScript configuration used by Jest (jest-preset-angular reads tsconfig.spec.json by default). */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["jest"],
+    "esModuleInterop": true
+  },
+  "include": ["setup-jest.ts", "src/**/*.d.ts", "src/**/*.spec.ts"]
+}

@@ -1,0 +1,39 @@
+# Every value that changes between environments comes from an environment variable.
+# Defaults are only provided where they are safe for local development (never for secrets).
+spring:
+  application:
+    name: raidboard
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/raidboard}
+    username: ${DB_USERNAME:raidboard}
+    password: ${DB_PASSWORD:raidboard}
+  jpa:
+    # The schema is owned by Flyway; Hibernate only checks that entities match it
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+raidboard:
+  security:
+    jwt-secret: ${JWT_SECRET}
+    issuer: raidboard
+    access-token-ttl: ${ACCESS_TOKEN_TTL:15m}
+    refresh-token-ttl: ${REFRESH_TOKEN_TTL:14d}
+    refresh-cookie-secure: ${REFRESH_COOKIE_SECURE:true}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

@@ -1,0 +1,11 @@
+# Local environment: contains secrets
+.env
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+
+# Playwright MCP / test artifacts
+.playwright-mcp/

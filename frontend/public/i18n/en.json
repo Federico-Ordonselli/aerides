@@ -1,0 +1,51 @@
+{
+  "auth": {
+    "logout": "Log out",
+    "fields": {
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm password",
+      "displayName": "Display name"
+    },
+    "login": {
+      "title": "Log in",
+      "subtitle": "Welcome back to Raidboard",
+      "submit": "Log in",
+      "invalidCredentials": "Invalid email or password",
+      "noAccount": "Don't have an account?",
+      "toRegister": "Sign up"
+    },
+    "register": {
+      "title": "Create an account",
+      "subtitle": "Organize your group's sessions",
+      "submit": "Sign up",
+      "emailTaken": "This email is already registered",
+      "haveAccount": "Already have an account?",
+      "toLogin": "Log in",
+      "passwordPrompt": "Choose a password",
+      "passwordWeak": "Weak",
+      "passwordMedium": "Medium",
+      "passwordStrong": "Strong"
+    }
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Enter a valid email",
+    "length": "Must be between {{min}} and {{max}} characters",
+    "passwordsMismatch": "Passwords don't match"
+  },
+  "errors": {
+    "title": "Error",
+    "generic": "Something went wrong, please try again",
+    "network": "Server unreachable, check your connection",
+    "forbidden": "You don't have permission to do this",
+    "server": "Server error, please try again later"
+  },
+  "layout": {
+    "language": "Language"
+  },
+  "home": {
+    "welcome": "Hi, {{name}}!",
+    "intro": "Your groups and upcoming sessions will show up here."
+  }
+}

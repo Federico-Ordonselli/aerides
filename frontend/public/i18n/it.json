@@ -1,0 +1,51 @@
+{
+  "auth": {
+    "logout": "Esci",
+    "fields": {
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Conferma password",
+      "displayName": "Nome visualizzato"
+    },
+    "login": {
+      "title": "Accedi",
+      "subtitle": "Bentornato su Raidboard",
+      "submit": "Accedi",
+      "invalidCredentials": "Email o password non validi",
+      "noAccount": "Non hai un account?",
+      "toRegister": "Registrati"
+    },
+    "register": {
+      "title": "Crea un account",
+      "subtitle": "Organizza le sessioni del tuo gruppo",
+      "submit": "Registrati",
+      "emailTaken": "Questa email è già registrata",
+      "haveAccount": "Hai già un account?",
+      "toLogin": "Accedi",
+      "passwordPrompt": "Scegli una password",
+      "passwordWeak": "Debole",
+      "passwordMedium": "Media",
+      "passwordStrong": "Forte"
+    }
+  },
+  "validation": {
+    "required": "Campo obbligatorio",
+    "email": "Inserisci un'email valida",
+    "length": "Deve contenere da {{min}} a {{max}} caratteri",
+    "passwordsMismatch": "Le password non coincidono"
+  },
+  "errors": {
+    "title": "Errore",
+    "generic": "Qualcosa è andato storto, riprova",
+    "network": "Server non raggiungibile, controlla la connessione",
+    "forbidden": "Non hai i permessi per questa operazione",
+    "server": "Errore del server, riprova più tardi"
+  },
+  "layout": {
+    "language": "Lingua"
+  },
+  "home": {
+    "welcome": "Ciao, {{name}}!",
+    "intro": "Qui troverai i tuoi gruppi e le prossime sessioni."
+  }
+}

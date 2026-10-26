@@ -1,0 +1,34 @@
+<header class="topbar">
+  <a routerLink="/" class="brand">
+    <i class="pi pi-calendar" aria-hidden="true"></i>
+    Raidboard
+  </a>
+
+  <div class="topbar-actions">
+    <div class="language-switch" role="group" [attr.aria-label]="'layout.language' | translate">
+      @for (language of languages; track language) {
+        <p-button
+          [label]="language.toUpperCase()"
+          [text]="languageService.current() !== language"
+          size="small"
+          (onClick)="changeLanguage(language)"
+        />
+      }
+    </div>
+
+    @if (authService.currentUser(); as user) {
+      <span class="user-name" data-testid="current-user">{{ user.displayName }}</span>
+    }
+    <p-button
+      icon="pi pi-sign-out"
+      [label]="'auth.logout' | translate"
+      severity="secondary"
+      size="small"
+      (onClick)="logout()"
+    />
+  </div>
+</header>
+
+<main class="content">
+  <router-outlet />
+</main>

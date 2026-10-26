@@ -1,6 +1,10 @@
 {
   "common": {
-    "close": "Close"
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "retry": "Retry",
+    "actions": "Actions"
   },
   "auth": {
     "logout": "Log out",
@@ -34,7 +38,8 @@
     "email": "Enter a valid email",
     "length": "Must be between {{min}} and {{max}} characters",
     "passwordsMismatch": "Passwords don't match",
-    "tooManyBytes": "Too long: accented letters and symbols take up more space"
+    "tooManyBytes": "Too long: accented letters and symbols take up more space",
+    "maxLength": "At most {{max}} characters"
   },
   "errors": {
     "generic": "Something went wrong, please try again",
@@ -43,10 +48,110 @@
     "server": "Server error, please try again later"
   },
   "layout": {
-    "language": "Language"
+    "language": "Language",
+    "groups": "Groups"
   },
   "home": {
     "welcome": "Hi, {{name}}!",
-    "intro": "Your groups and upcoming sessions will show up here."
+    "intro": "Your groups and upcoming sessions will show up here.",
+    "goToGroups": "Go to your groups"
+  },
+  "groups": {
+    "backToList": "All groups",
+    "list": {
+      "title": "Your groups",
+      "emptyTitle": "You're not in any group yet",
+      "emptyMessage": "Create a group for your guild or table, or join an existing one with an invite code.",
+      "memberCount": "Members: {{count}}"
+    },
+    "create": {
+      "title": "Create group",
+      "submit": "Create"
+    },
+    "join": {
+      "title": "Join with a code",
+      "help": "Ask an officer or the owner of the group for the invite code.",
+      "submit": "Join",
+      "invalidCode": "Invalid invite code",
+      "alreadyMember": "You're already a member of this group"
+    },
+    "fields": {
+      "name": "Name",
+      "description": "Description",
+      "inviteCode": "Invite code",
+      "webhookUrl": "Discord webhook URL"
+    },
+    "roles": {
+      "MEMBER": "Member",
+      "OFFICER": "Officer",
+      "OWNER": "Owner"
+    },
+    "tabs": {
+      "members": "Members",
+      "games": "Games"
+    },
+    "members": {
+      "name": "Name",
+      "role": "Role",
+      "joinedAt": "Joined",
+      "you": "you",
+      "changeRole": "Change role",
+      "remove": "Remove from group",
+      "removeTitle": "Remove member?",
+      "removeMessage": "{{name}} won't see the group and its events anymore.",
+      "roleChanged": "{{name}}'s role updated"
+    },
+    "leave": {
+      "title": "Leave the group?",
+      "message": "You'll need an invite code to join again.",
+      "confirm": "Leave group"
+    },
+    "notFound": {
+      "title": "Group not found",
+      "message": "The group doesn't exist or you're not a member."
+    },
+    "settings": {
+      "title": "Settings",
+      "details": "Details",
+      "saved": "Changes saved",
+      "invite": "Invite code",
+      "inviteHelp": "Share it with the people you want in the group.",
+      "copy": "Copy",
+      "inviteCopied": "Code copied",
+      "regenerate": "Generate new code",
+      "regenerateTitle": "Generate a new code?",
+      "regenerateMessage": "The current code stops working immediately.",
+      "inviteRegenerated": "New code generated",
+      "discord": "Discord",
+      "discordHelp": "Post a message in your Discord channel when an event is published.",
+      "webhookHint": "Leave empty to turn it off. Treat it like a password.",
+      "webhookInvalid": "Must be a Discord webhook URL (https://discord.com/api/webhooks/...)",
+      "webhookSaved": "Webhook saved",
+      "webhookRemoved": "Webhook removed",
+      "danger": "Danger zone",
+      "deleteHelp": "Deletes the group with all its members, games and events. This cannot be undone.",
+      "delete": "Delete group",
+      "deleteTitle": "Delete the group?",
+      "deleteMessage": "\"{{name}}\" will be deleted forever, with all its data.",
+      "deleted": "Group deleted"
+    }
+  },
+  "games": {
+    "search": {
+      "label": "Add a game",
+      "placeholder": "Search the RAWG catalog...",
+      "unavailable": "Game search is unavailable right now"
+    },
+    "empty": {
+      "title": "No games in the catalog",
+      "messageManager": "Search for a game above to add it.",
+      "messageMember": "An officer can add the games the group plays."
+    },
+    "remove": "Remove game",
+    "removeTitle": "Remove the game?",
+    "removeMessage": "{{name}} will be removed from the group's catalog.",
+    "added": "{{name}} added",
+    "alreadyAdded": "{{name}} is already in the catalog",
+    "attribution": "Game data provided by"
   }
 }

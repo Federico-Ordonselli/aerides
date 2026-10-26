@@ -1,0 +1,63 @@
+@if (group.isLoading() && !group.hasValue()) {
+  <mat-progress-bar mode="indeterminate" />
+} @else if (group.error()) {
+  <app-empty-state icon="search_off" [title]="'groups.notFound.title' | translate" [message]="'groups.notFound.message' | translate">
+    <a mat-flat-button routerLink="/groups">{{ 'groups.backToList' | translate }}</a>
+  </app-empty-state>
+} @else if (group.hasValue()) {
+  @let detail = group.value();
+  <header class="group-header">
+    <div>
+      <a routerLink="/groups" class="back-link">
+        <mat-icon>arrow_back</mat-icon>
+        {{ 'groups.backToList' | translate }}
+      </a>
+      <h1 data-testid="group-name">{{ detail.name }}</h1>
+      @if (detail.description) {
+        <p class="description">{{ detail.description }}</p>
+      }
+    </div>
+    <div class="header-actions">
+      @if (isOfficer()) {
+        <a mat-stroked-button [routerLink]="['/groups', detail.id, 'settings']" data-testid="settings-link">
+          <mat-icon>settings</mat-icon>
+          {{ 'groups.settings.title' | translate }}
+        </a>
+      }
+      @if (detail.myRole !== 'OWNER') {
+        <button mat-button (click)="leave()">
+          <mat-icon>logout</mat-icon>
+          {{ 'groups.leave.confirm' | translate }}
+        </button>
+      }
+    </div>
+  </header>
+
+  <mat-tab-group mat-stretch-tabs="false" animationDuration="0ms">
+    <mat-tab [label]="('groups.tabs.members' | translate) + ' (' + detail.memberCount + ')'">
+      <div class="tab-content">
+        @if (members.hasValue()) {
+          <app-members-table
+            [members]="members.value()"
+            [myRole]="detail.myRole"
+            [myUserId]="myUserId()"
+            (roleChange)="changeRole($event)"
+            (remove)="removeMember($event)"
+          />
+        }
+      </div>
+    </mat-tab>
+    <mat-tab [label]="'groups.tabs.games' | translate">
+      <div class="tab-content">
+        @if (games.hasValue()) {
+          <app-group-games
+            [games]="games.value()"
+            [canManage]="isOfficer()"
+            (add)="addGame($event)"
+            (remove)="removeGame($event)"
+          />
+        }
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+}

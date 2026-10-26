@@ -1,0 +1,49 @@
+<header class="page-header">
+  <h1>{{ 'groups.list.title' | translate }}</h1>
+  <div class="actions">
+    <button mat-stroked-button (click)="openJoin()" data-testid="join-group">
+      <mat-icon>group_add</mat-icon>
+      {{ 'groups.join.title' | translate }}
+    </button>
+    <button mat-flat-button (click)="openCreate()" data-testid="create-group">
+      <mat-icon>add</mat-icon>
+      {{ 'groups.create.title' | translate }}
+    </button>
+  </div>
+</header>
+
+@if (groups.isLoading() && !groups.hasValue()) {
+  <mat-progress-bar mode="indeterminate" />
+} @else if (groups.error()) {
+  <app-empty-state icon="cloud_off" [title]="'errors.generic' | translate">
+    <button mat-stroked-button (click)="groups.reload()">{{ 'common.retry' | translate }}</button>
+  </app-empty-state>
+} @else if (groups.hasValue()) {
+  @if (groups.value().length === 0) {
+    <app-empty-state icon="groups" [title]="'groups.list.emptyTitle' | translate" [message]="'groups.list.emptyMessage' | translate">
+      <button mat-flat-button (click)="openCreate()">{{ 'groups.create.title' | translate }}</button>
+      <button mat-stroked-button (click)="openJoin()">{{ 'groups.join.title' | translate }}</button>
+    </app-empty-state>
+  } @else {
+    <div class="groups-grid">
+      @for (group of groups.value(); track group.id) {
+        <a [routerLink]="['/groups', group.id]" class="group-link" data-testid="group-card">
+          <mat-card appearance="outlined" class="group-card">
+            <mat-card-header>
+              <mat-card-title>{{ group.name }}</mat-card-title>
+              <mat-card-subtitle>
+                {{ 'groups.roles.' + group.myRole | translate }} ·
+                {{ 'groups.list.memberCount' | translate: { count: group.memberCount } }}
+              </mat-card-subtitle>
+            </mat-card-header>
+            @if (group.description) {
+              <mat-card-content>
+                <p class="description">{{ group.description }}</p>
+              </mat-card-content>
+            }
+          </mat-card>
+        </a>
+      }
+    </div>
+  }
+}

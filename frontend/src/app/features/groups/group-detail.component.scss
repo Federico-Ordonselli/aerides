@@ -1,0 +1,36 @@
+.group-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+  font: var(--mat-sys-label-large);
+}
+
+h1 {
+  margin: 0.5rem 0 0;
+  font: var(--mat-sys-headline-medium);
+}
+
+.description {
+  margin: 0.25rem 0 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tab-content {
+  padding: 1.5rem 0;
+}

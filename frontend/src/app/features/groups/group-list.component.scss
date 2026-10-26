@@ -1,0 +1,49 @@
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+h1 {
+  margin: 0;
+  font: var(--mat-sys-headline-medium);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 1rem;
+}
+
+.group-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.group-card {
+  height: 100%;
+  transition: border-color 150ms;
+}
+
+.group-link:hover .group-card,
+.group-link:focus-visible .group-card {
+  border-color: var(--mat-sys-primary);
+}
+
+.description {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

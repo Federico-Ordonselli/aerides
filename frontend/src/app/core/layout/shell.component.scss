@@ -13,6 +13,14 @@
   text-decoration: none;
 }
 
+.main-nav {
+  margin-left: 1rem;
+}
+
+.active-link {
+  background: var(--mat-sys-secondary-container);
+}
+
 .spacer {
   flex: 1;
 }

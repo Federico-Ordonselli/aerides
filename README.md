@@ -32,6 +32,8 @@ docker compose up --build
 | http://localhost:8080/actuator/health | Health check |
 | http://localhost:8025 | Mailpit (catches every email sent in development) |
 
+**Game search** needs a free RAWG API key: get one at [rawg.io/apidocs](https://rawg.io/apidocs) and set `RAWG_API_KEY` in `.env`. Without it everything else works, and the search box says the catalog is unavailable.
+
 ## Local development
 
 Requirements: JDK 21, Node 24, Docker (for PostgreSQL and the integration tests).
@@ -70,11 +72,14 @@ npm run build          # production build
 backend/   Spring Boot API, package by feature under dev.ordonselli.raidboard
   auth/      register, login, refresh, logout, security configuration
   user/      user entity and profile endpoint
-  common/    error handling (ProblemDetail), OpenAPI, clock, shared security helpers
+  group/     groups, memberships, roles, invite codes, per-group authorization (GroupSecurity)
+  game/      RAWG client and per-group game catalog
+  audit/     audit log written in the same transaction as each change
+  common/    error handling (ProblemDetail), rate limiting, validation, OpenAPI, cache, clock
 frontend/  Angular app
   core/      auth (service, interceptor, guards), HTTP error handling, i18n, layout
-  shared/    reusable validators and components
-  features/  one folder per feature, lazy-loaded (auth, home, ...)
+  shared/    reusable validators and components (empty state, confirm dialog)
+  features/  one folder per feature, lazy-loaded (auth, home, groups, games)
 ```
 
 ## Security design
@@ -91,6 +96,23 @@ frontend/  Angular app
   - The client IP comes from `X-Forwarded-For`, which Spring trusts only when it's set by a proxy on a private network. nginx **overwrites** that header with the real client address, so a client can't fake a new IP on every request. Locally the backend port is published on `127.0.0.1` only. In production the backend must not be publicly reachable, and `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` should list only the real edge proxy (e.g. Azure ingress), which is the one setting the header.
 - **Input bounds**: passwords are limited in **bytes** as well as characters (`@MaxUtf8Bytes(72)`), because BCrypt rejects anything over 72 bytes and `é` is one character but two bytes. Login fields have maximum sizes, because the email becomes part of a rate-limit key held in memory.
 
+### Group access rules
+
+Every group-scoped endpoint is protected with `@PreAuthorize("@groupSecurity.hasRole(#groupId, '...')")`:
+
+| Action | Member | Officer | Owner |
+|---|:---:|:---:|:---:|
+| See the group, its members and games | ✓ | ✓ | ✓ |
+| Edit name and description, add/remove games | | ✓ | ✓ |
+| See the invite code | | ✓ | ✓ |
+| Change roles, remove members, regenerate the invite code, set the Discord webhook, delete the group | | | ✓ |
+
+- **Non-members get 404, not 403**: the API doesn't even confirm that the group exists. Members without the required role get 403.
+- Services still load the caller's membership, and every group-owned lookup filters by group id (`findByIdAndGroupId`), so an id from another group is never found even if a check were forgotten.
+- The whole matrix is covered by `GroupAccessIT` (every endpoint × outsider, member, officer, owner).
+- The Discord webhook URL is a secret: only the owner can read it, it never appears in the audit log, and only `https://discord.com/api/webhooks/...` URLs are accepted, so the server can't be pointed at internal addresses (SSRF).
+- The owner can't leave the group or change their own role; ownership transfer isn't supported yet.
+
 ### Known trade-off: registration reveals whether an email exists
 
 `POST /api/auth/register` answers `409 Conflict` when the email is already registered, so someone could check whether an address has an account. This is a deliberate choice. Hiding it properly would mean an email-verification flow: always answer "check your inbox" and send either a confirmation link or an "you already have an account" email. That costs extra work and makes signing up clumsier, which isn't justified for this app's data. The impact is limited by the fact that you can only *check* addresses, not list them, and the endpoint can be rate-limited the same way as login if it ever becomes a problem.
@@ -102,7 +124,7 @@ Everything that changes between environments comes from environment variables. S
 ## Roadmap
 
 - [x] **1. Foundation**: monorepo, database schema (Flyway), authentication with JWT + refresh-token rotation, error handling, Swagger, Angular shell with login and register
-- [ ] **2. Groups and games**: group CRUD, invite codes, member roles, audit log, RAWG game catalog
+- [x] **2. Groups and games**: group CRUD, invite codes, member roles, audit log, RAWG game catalog
 - [ ] **3. Events and sign-ups**: slots, waitlist promotion, concurrency-safe sign-ups, recurrence, calendar
 - [ ] **4. Real-time and notifications**: WebSocket updates, reminder emails, Discord webhooks
 - [ ] **5. Dashboard and polish**: statistics, audit log page, responsive layout

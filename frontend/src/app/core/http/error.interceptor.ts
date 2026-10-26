@@ -4,10 +4,13 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
 import { catchError, throwError } from 'rxjs';
 
+import { SKIP_ERROR_SNACKBAR } from './http-context-tokens';
+
 /**
  * Shows a snackbar for errors that a page cannot handle in a meaningful way: network down, forbidden, server errors.
  * Errors that belong to a form (400 validation, 409 conflict, 422 business rule) and 401 (handled by
- * authInterceptor) are left to the caller. The error is always re-thrown.
+ * authInterceptor) are left to the caller, as are requests marked with SKIP_ERROR_SNACKBAR.
+ * The error is always re-thrown.
  */
 export const errorInterceptor: HttpInterceptorFn = (request, next) => {
   const snackBar = inject(MatSnackBar);
@@ -15,7 +18,7 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
 
   return next(request).pipe(
     catchError((error: unknown) => {
-      if (error instanceof HttpErrorResponse) {
+      if (error instanceof HttpErrorResponse && !request.context.get(SKIP_ERROR_SNACKBAR)) {
         const key = toastKeyFor(error.status);
         if (key) {
           snackBar.open(translate.instant(key), translate.instant('common.close'), { duration: 6000 });

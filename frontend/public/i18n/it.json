@@ -1,6 +1,10 @@
 {
   "common": {
-    "close": "Chiudi"
+    "close": "Chiudi",
+    "cancel": "Annulla",
+    "save": "Salva",
+    "retry": "Riprova",
+    "actions": "Azioni"
   },
   "auth": {
     "logout": "Esci",
@@ -34,7 +38,8 @@
     "email": "Inserisci un'email valida",
     "length": "Deve contenere da {{min}} a {{max}} caratteri",
     "passwordsMismatch": "Le password non coincidono",
-    "tooManyBytes": "Troppo lunga: le lettere accentate e i simboli occupano più spazio"
+    "tooManyBytes": "Troppo lunga: le lettere accentate e i simboli occupano più spazio",
+    "maxLength": "Massimo {{max}} caratteri"
   },
   "errors": {
     "generic": "Qualcosa è andato storto, riprova",
@@ -43,10 +48,110 @@
     "server": "Errore del server, riprova più tardi"
   },
   "layout": {
-    "language": "Lingua"
+    "language": "Lingua",
+    "groups": "Gruppi"
   },
   "home": {
     "welcome": "Ciao, {{name}}!",
-    "intro": "Qui troverai i tuoi gruppi e le prossime sessioni."
+    "intro": "Qui troverai i tuoi gruppi e le prossime sessioni.",
+    "goToGroups": "Vai ai tuoi gruppi"
+  },
+  "groups": {
+    "backToList": "Tutti i gruppi",
+    "list": {
+      "title": "I tuoi gruppi",
+      "emptyTitle": "Non fai ancora parte di nessun gruppo",
+      "emptyMessage": "Crea un gruppo per la tua gilda o il tuo tavolo, oppure entra in uno esistente con un codice invito.",
+      "memberCount": "Membri: {{count}}"
+    },
+    "create": {
+      "title": "Crea gruppo",
+      "submit": "Crea"
+    },
+    "join": {
+      "title": "Entra con un codice",
+      "help": "Chiedi il codice invito a un ufficiale o al proprietario del gruppo.",
+      "submit": "Entra",
+      "invalidCode": "Codice invito non valido",
+      "alreadyMember": "Fai già parte di questo gruppo"
+    },
+    "fields": {
+      "name": "Nome",
+      "description": "Descrizione",
+      "inviteCode": "Codice invito",
+      "webhookUrl": "URL webhook Discord"
+    },
+    "roles": {
+      "MEMBER": "Membro",
+      "OFFICER": "Ufficiale",
+      "OWNER": "Proprietario"
+    },
+    "tabs": {
+      "members": "Membri",
+      "games": "Giochi"
+    },
+    "members": {
+      "name": "Nome",
+      "role": "Ruolo",
+      "joinedAt": "Entrato il",
+      "you": "tu",
+      "changeRole": "Cambia ruolo",
+      "remove": "Rimuovi dal gruppo",
+      "removeTitle": "Rimuovere il membro?",
+      "removeMessage": "{{name}} non vedrà più il gruppo e i suoi eventi.",
+      "roleChanged": "Ruolo di {{name}} aggiornato"
+    },
+    "leave": {
+      "title": "Lasciare il gruppo?",
+      "message": "Per rientrare ti servirà di nuovo un codice invito.",
+      "confirm": "Lascia il gruppo"
+    },
+    "notFound": {
+      "title": "Gruppo non trovato",
+      "message": "Il gruppo non esiste oppure non ne fai parte."
+    },
+    "settings": {
+      "title": "Impostazioni",
+      "details": "Dettagli",
+      "saved": "Modifiche salvate",
+      "invite": "Codice invito",
+      "inviteHelp": "Condividilo con chi vuoi far entrare nel gruppo.",
+      "copy": "Copia",
+      "inviteCopied": "Codice copiato",
+      "regenerate": "Genera nuovo codice",
+      "regenerateTitle": "Generare un nuovo codice?",
+      "regenerateMessage": "Il codice attuale smetterà di funzionare subito.",
+      "inviteRegenerated": "Nuovo codice generato",
+      "discord": "Discord",
+      "discordHelp": "Pubblica un messaggio nel tuo canale Discord quando esce un evento.",
+      "webhookHint": "Lascia vuoto per disattivare. Trattalo come una password.",
+      "webhookInvalid": "Deve essere un URL webhook di Discord (https://discord.com/api/webhooks/...)",
+      "webhookSaved": "Webhook salvato",
+      "webhookRemoved": "Webhook rimosso",
+      "danger": "Zona pericolosa",
+      "deleteHelp": "Elimina il gruppo con tutti i membri, i giochi e gli eventi. Non si può annullare.",
+      "delete": "Elimina gruppo",
+      "deleteTitle": "Eliminare il gruppo?",
+      "deleteMessage": "\"{{name}}\" verrà eliminato per sempre insieme a tutti i suoi dati.",
+      "deleted": "Gruppo eliminato"
+    }
+  },
+  "games": {
+    "search": {
+      "label": "Aggiungi un gioco",
+      "placeholder": "Cerca nel catalogo RAWG...",
+      "unavailable": "Ricerca giochi non disponibile al momento"
+    },
+    "empty": {
+      "title": "Nessun gioco nel catalogo",
+      "messageManager": "Cerca un gioco qui sopra per aggiungerlo.",
+      "messageMember": "Un ufficiale può aggiungere i giochi del gruppo."
+    },
+    "remove": "Rimuovi gioco",
+    "removeTitle": "Rimuovere il gioco?",
+    "removeMessage": "{{name}} verrà tolto dal catalogo del gruppo.",
+    "added": "{{name}} aggiunto",
+    "alreadyAdded": "{{name}} è già nel catalogo",
+    "attribution": "Dati sui giochi forniti da"
   }
 }

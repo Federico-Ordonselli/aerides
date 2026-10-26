@@ -23,6 +23,10 @@ export const routes: Routes = [
         path: '',
         loadComponent: () => import('./features/home/home.component').then((m) => m.HomeComponent),
       },
+      {
+        path: 'groups',
+        loadChildren: () => import('./features/groups/groups.routes').then((m) => m.GROUP_ROUTES),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

@@ -1,0 +1,55 @@
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+  font: var(--mat-sys-label-large);
+}
+
+h1 {
+  margin: 0.5rem 0 0;
+  font: var(--mat-sys-headline-medium);
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 44rem;
+}
+
+.section-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.invite-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.invite-code {
+  font-size: 1.25rem;
+  letter-spacing: 0.15em;
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--mat-sys-corner-small);
+  background: var(--mat-sys-surface-container-highest);
+}
+
+.danger-zone {
+  border-color: var(--mat-sys-error);
+}
+
+.delete-button {
+  color: var(--mat-sys-error);
+}

@@ -1,0 +1,43 @@
+.members-table {
+  width: 100%;
+  background: transparent;
+}
+
+.you {
+  color: var(--mat-sys-on-surface-variant);
+  margin-left: 0.25rem;
+}
+
+.role-select {
+  max-width: 10rem;
+}
+
+.role-chip {
+  display: inline-block;
+  padding: 0.125rem 0.625rem;
+  border-radius: var(--mat-sys-corner-full);
+  font: var(--mat-sys-label-medium);
+  background: var(--mat-sys-surface-container-highest);
+}
+
+.role-owner {
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+}
+
+.role-officer {
+  background: var(--mat-sys-tertiary-container);
+  color: var(--mat-sys-on-tertiary-container);
+}
+
+.actions-cell {
+  text-align: right;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}

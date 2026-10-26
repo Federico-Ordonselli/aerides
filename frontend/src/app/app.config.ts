@@ -1,4 +1,6 @@
+import { registerLocaleData } from '@angular/common';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import localeIt from '@angular/common/locales/it';
 import {
   ApplicationConfig,
   inject,
@@ -16,6 +18,9 @@ import { authInterceptor } from './core/auth/auth.interceptor';
 import { AuthService } from './core/auth/auth.service';
 import { errorInterceptor } from './core/http/error.interceptor';
 import { LanguageService } from './core/i18n/language.service';
+
+// Date and number formats for Italian (English is built in)
+registerLocaleData(localeIt);
 
 export const appConfig: ApplicationConfig = {
   providers: [

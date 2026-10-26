@@ -1,0 +1,42 @@
+@if (canManage()) {
+  <app-game-search (gameSelected)="add.emit($event)" />
+}
+
+@if (games().length === 0) {
+  <app-empty-state
+    icon="sports_esports"
+    [title]="'games.empty.title' | translate"
+    [message]="(canManage() ? 'games.empty.messageManager' : 'games.empty.messageMember') | translate"
+  />
+} @else {
+  <div class="games-grid">
+    @for (game of games(); track game.id) {
+      <mat-card appearance="outlined" class="game-card" data-testid="game-card">
+        @if (game.coverUrl) {
+          <img mat-card-image [src]="game.coverUrl" [alt]="game.name" loading="lazy" />
+        } @else {
+          <div class="cover-placeholder"><mat-icon>sports_esports</mat-icon></div>
+        }
+        <mat-card-content class="game-content">
+          <span class="game-name">{{ game.name }}</span>
+          @if (canManage()) {
+            <button
+              mat-icon-button
+              (click)="remove.emit(game)"
+              [matTooltip]="'games.remove' | translate"
+              [attr.aria-label]="'games.remove' | translate"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+          }
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+}
+
+<!-- Required by the RAWG API terms of use -->
+<p class="attribution">
+  {{ 'games.attribution' | translate }}
+  <a href="https://rawg.io" target="_blank" rel="noopener noreferrer">RAWG</a>
+</p>

@@ -1,0 +1,61 @@
+<table mat-table [dataSource]="members()" class="members-table">
+  <ng-container matColumnDef="name">
+    <th mat-header-cell *matHeaderCellDef>{{ 'groups.members.name' | translate }}</th>
+    <td mat-cell *matCellDef="let member">
+      {{ member.displayName }}
+      @if (member.userId === myUserId()) {
+        <span class="you">({{ 'groups.members.you' | translate }})</span>
+      }
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="role">
+    <th mat-header-cell *matHeaderCellDef>{{ 'groups.members.role' | translate }}</th>
+    <td mat-cell *matCellDef="let member">
+      @if (canManage(member)) {
+        <mat-select
+          class="role-select"
+          [value]="member.role"
+          (selectionChange)="roleChange.emit({ member, role: $event.value })"
+          [attr.aria-label]="'groups.members.changeRole' | translate"
+          data-testid="role-select"
+        >
+          @for (role of assignableRoles; track role) {
+            <mat-option [value]="role">{{ 'groups.roles.' + role | translate }}</mat-option>
+          }
+        </mat-select>
+      } @else {
+        <span class="role-chip" [class]="'role-' + member.role.toLowerCase()">
+          {{ 'groups.roles.' + member.role | translate }}
+        </span>
+      }
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="joinedAt">
+    <th mat-header-cell *matHeaderCellDef>{{ 'groups.members.joinedAt' | translate }}</th>
+    <td mat-cell *matCellDef="let member">
+      {{ member.joinedAt | date: 'mediumDate' : undefined : languageService.current() }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="actions">
+    <th mat-header-cell *matHeaderCellDef><span class="sr-only">{{ 'common.actions' | translate }}</span></th>
+    <td mat-cell *matCellDef="let member" class="actions-cell">
+      @if (canManage(member)) {
+        <button
+          mat-icon-button
+          (click)="remove.emit(member)"
+          [matTooltip]="'groups.members.remove' | translate"
+          [attr.aria-label]="'groups.members.remove' | translate"
+          data-testid="remove-member"
+        >
+          <mat-icon>person_remove</mat-icon>
+        </button>
+      }
+    </td>
+  </ng-container>
+
+  <tr mat-header-row *matHeaderRowDef="columns()"></tr>
+  <tr mat-row *matRowDef="let row; columns: columns()"></tr>
+</table>

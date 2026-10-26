@@ -1,0 +1,95 @@
+@if (group.isLoading() && !group.hasValue()) {
+  <mat-progress-bar mode="indeterminate" />
+} @else if (group.hasValue()) {
+  <header class="page-header">
+    <a [routerLink]="['/groups', groupId()]" class="back-link">
+      <mat-icon>arrow_back</mat-icon>
+      {{ group.value().name }}
+    </a>
+    <h1>{{ 'groups.settings.title' | translate }}</h1>
+  </header>
+
+  <div class="sections">
+    <mat-card appearance="outlined">
+      <mat-card-header>
+        <mat-card-title>{{ 'groups.settings.details' | translate }}</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <form [formGroup]="detailsForm" (ngSubmit)="saveDetails()" class="section-form" novalidate>
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'groups.fields.name' | translate }}</mat-label>
+            <input matInput formControlName="name" />
+            <mat-error>{{ 'validation.length' | translate: { min: 1, max: 80 } }}</mat-error>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'groups.fields.description' | translate }}</mat-label>
+            <textarea matInput formControlName="description" rows="3"></textarea>
+            <mat-error>{{ 'validation.maxLength' | translate: { max: 1000 } }}</mat-error>
+          </mat-form-field>
+          <div>
+            <button mat-flat-button type="submit" [disabled]="saving() || detailsForm.pristine">
+              {{ 'common.save' | translate }}
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    @if (inviteCode(); as code) {
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>{{ 'groups.settings.invite' | translate }}</mat-card-title>
+          <mat-card-subtitle>{{ 'groups.settings.inviteHelp' | translate }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content class="invite-row">
+          <code class="invite-code" data-testid="invite-code">{{ code }}</code>
+          <button mat-icon-button (click)="copyInviteCode()" [matTooltip]="'groups.settings.copy' | translate"
+                  [attr.aria-label]="'groups.settings.copy' | translate">
+            <mat-icon>content_copy</mat-icon>
+          </button>
+          @if (isOwner()) {
+            <button mat-stroked-button (click)="regenerateInviteCode()">
+              <mat-icon>refresh</mat-icon>
+              {{ 'groups.settings.regenerate' | translate }}
+            </button>
+          }
+        </mat-card-content>
+      </mat-card>
+    }
+
+    @if (isOwner()) {
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>{{ 'groups.settings.discord' | translate }}</mat-card-title>
+          <mat-card-subtitle>{{ 'groups.settings.discordHelp' | translate }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <form [formGroup]="webhookForm" (ngSubmit)="saveWebhook()" class="section-form" novalidate>
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'groups.fields.webhookUrl' | translate }}</mat-label>
+              <input matInput formControlName="url" placeholder="https://discord.com/api/webhooks/..." autocomplete="off" />
+              <mat-hint>{{ 'groups.settings.webhookHint' | translate }}</mat-hint>
+              <mat-error>{{ 'groups.settings.webhookInvalid' | translate }}</mat-error>
+            </mat-form-field>
+            <div>
+              <button mat-flat-button type="submit" [disabled]="webhookForm.pristine">{{ 'common.save' | translate }}</button>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="danger-zone">
+        <mat-card-header>
+          <mat-card-title>{{ 'groups.settings.danger' | translate }}</mat-card-title>
+          <mat-card-subtitle>{{ 'groups.settings.deleteHelp' | translate }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-actions>
+          <button mat-stroked-button class="delete-button" (click)="deleteGroup()" data-testid="delete-group">
+            <mat-icon>delete_forever</mat-icon>
+            {{ 'groups.settings.delete' | translate }}
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    }
+  </div>
+}

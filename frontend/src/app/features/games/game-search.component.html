@@ -1,0 +1,39 @@
+<mat-form-field appearance="outline" class="search-field">
+  <mat-label>{{ 'games.search.label' | translate }}</mat-label>
+  <mat-icon matPrefix>search</mat-icon>
+  <input
+    matInput
+    data-testid="game-search-input"
+    [formControl]="query"
+    [matAutocomplete]="auto"
+    [placeholder]="'games.search.placeholder' | translate"
+  />
+  @if (loading()) {
+    <mat-spinner matSuffix diameter="20" />
+  }
+  @if (unavailable()) {
+    <mat-hint class="unavailable" data-testid="game-search-unavailable">
+      {{ 'games.search.unavailable' | translate }}
+    </mat-hint>
+  }
+</mat-form-field>
+
+<mat-autocomplete #auto="matAutocomplete" (optionSelected)="select($event)">
+  @for (game of results(); track game.rawgId) {
+    <mat-option [value]="game">
+      <span class="option">
+        @if (game.coverUrl) {
+          <img [src]="game.coverUrl" alt="" class="thumb" loading="lazy" />
+        } @else {
+          <mat-icon class="thumb">sports_esports</mat-icon>
+        }
+        <span>
+          {{ game.name }}
+          @if (game.released) {
+            <small class="year">({{ game.released.slice(0, 4) }})</small>
+          }
+        </span>
+      </span>
+    </mat-option>
+  }
+</mat-autocomplete>

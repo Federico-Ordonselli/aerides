@@ -107,3 +107,10 @@ Everything that changes between environments comes from environment variables. S
 - [ ] **4. Real-time and notifications**: WebSocket updates, reminder emails, Discord webhooks
 - [ ] **5. Dashboard and polish**: statistics, audit log page, responsive layout
 - [ ] **6. Quality and delivery**: Playwright e2e, GitHub Actions, Terraform for Azure, demo data
+
+### Backlog (Milestone 6)
+
+Tracked improvements that are not bugs, deliberately left for later:
+
+- **"Recognized device" cookie**: after a successful login, set a long-lived signed cookie. Logins from a recognized device skip the per-account rate limit, so an attacker who hits it can't lock the real user out. Today the lockout lasts at most 15 minutes (see [Security design](#security-design)).
+- **Shared rate-limit store**: move Bucket4j buckets to Redis (or to the gateway), so limits hold across instances and can't be reset by evicting entries from the in-memory cache.

@@ -39,7 +39,8 @@
     "length": "Must be between {{min}} and {{max}} characters",
     "passwordsMismatch": "Passwords don't match",
     "tooManyBytes": "Too long: accented letters and symbols take up more space",
-    "maxLength": "At most {{max}} characters"
+    "maxLength": "At most {{max}} characters",
+    "range": "Must be between {{min}} and {{max}}"
   },
   "errors": {
     "generic": "Something went wrong, please try again",
@@ -134,7 +135,8 @@
       "deleteTitle": "Delete the group?",
       "deleteMessage": "\"{{name}}\" will be deleted forever, with all its data.",
       "deleted": "Group deleted"
-    }
+    },
+    "events": "Events"
   },
   "games": {
     "search": {
@@ -153,5 +155,110 @@
     "added": "{{name}} added",
     "alreadyAdded": "{{name}} is already in the catalog",
     "attribution": "Game data provided by"
+  },
+  "events": {
+    "status": {
+      "DRAFT": "Draft",
+      "PUBLISHED": "Published",
+      "CANCELLED": "Cancelled",
+      "COMPLETED": "Completed"
+    },
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "game": "Game",
+      "status": "Status",
+      "startsAt": "When",
+      "date": "Date",
+      "time": "Time",
+      "durationMinutes": "Duration",
+      "requiresApproval": "Sign-ups need an officer's approval",
+      "withdrawDeadlineHours": "Withdrawal deadline (hours before)",
+      "weeklyOccurrences": "Number of weeks",
+      "roleName": "Role",
+      "capacity": "Seats"
+    },
+    "list": {
+      "title": "Events",
+      "new": "New event",
+      "view": "View",
+      "listView": "List",
+      "calendarView": "Calendar",
+      "allStatuses": "All statuses",
+      "allGames": "All games",
+      "dateRange": "Dates",
+      "from": "From",
+      "to": "To",
+      "allDates": "All dates",
+      "seats": "Seats",
+      "emptyTitle": "No events",
+      "emptyMessage": "No event matches these filters."
+    },
+    "form": {
+      "createTitle": "New event",
+      "editTitle": "Edit event",
+      "backToList": "Events",
+      "backToEvent": "Back to the event",
+      "create": "Create as draft",
+      "noGame": "No game",
+      "minutes": "Minutes",
+      "deadlineHint": "Confirmed players can't withdraw after this. 0 = until the start",
+      "repeatWeekly": "Repeat every week",
+      "slots": "Slots",
+      "slotsHint": "Roles and how many seats each one has",
+      "addSlot": "Add slot",
+      "removeSlot": "Remove slot",
+      "duplicateRoles": "Each role must have a different name",
+      "futureDate": "The event must be in the future",
+      "conflict": "The event was changed in the meantime, or the change conflicts with the current sign-ups.",
+      "invalid": "Some values are not valid.",
+      "notFound": "The event or the game no longer exists.",
+      "notEditable": "A cancelled or completed event can't be edited."
+    },
+    "detail": {
+      "backToList": "Events",
+      "notFound": "Event not found",
+      "notFoundMessage": "The event doesn't exist or isn't published yet.",
+      "duration": "{{minutes}} min",
+      "weeklySeries": "Part of a weekly series",
+      "deadline": "Confirmed players can withdraw until {{date}}",
+      "requiresApproval": "Sign-ups need an officer's approval",
+      "edit": "Edit",
+      "publish": "Publish",
+      "complete": "Mark as completed",
+      "cancelEvent": "Cancel event",
+      "cancelTitle": "Cancel the event?",
+      "cancelMessage": "Members won't be able to sign up anymore. This can't be undone.",
+      "seatsTaken": "{{taken}} of {{capacity}} seats taken",
+      "waitlist": "Waitlist",
+      "pending": "Waiting for approval",
+      "approve": "Approve",
+      "reject": "Reject",
+      "signUp": "Sign up",
+      "joinWaitlist": "Join the waitlist",
+      "withdraw": "Withdraw",
+      "withdrawTitle": "Withdraw from the event?",
+      "withdrawMessage": "If you had a seat, it goes to the first person on the waitlist.",
+      "youAreConfirmed": "You're in as {{role}}",
+      "youAreWaitlisted": "You're number {{position}} on the {{role}} waitlist",
+      "youArePending": "Your sign-up as {{role}} is waiting for approval",
+      "deadlinePassed": "The withdrawal deadline has passed: contact an officer",
+      "signedUp": {
+        "CONFIRMED": "You're in as {{role}}",
+        "WAITLISTED": "The slot is full: you're on the {{role}} waitlist",
+        "PENDING": "Sign-up sent: an officer will review it"
+      },
+      "approved": {
+        "CONFIRMED": "{{name}} approved",
+        "WAITLISTED": "{{name}} approved: the slot is full, so on the waitlist"
+      },
+      "rejected": "{{name}}'s sign-up rejected",
+      "withdrawn": "You withdrew from the event",
+      "published": "Event published",
+      "completed": "Event marked as completed",
+      "cancelled": "Event cancelled",
+      "outdated": "Someone changed this event in the meantime: the page has been refreshed",
+      "notAllowedNow": "This action is no longer possible for this event"
+    }
   }
 }

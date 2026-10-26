@@ -18,6 +18,10 @@
       }
     </div>
     <div class="header-actions">
+      <a mat-flat-button [routerLink]="['/groups', detail.id, 'events']" data-testid="events-link">
+        <mat-icon>event</mat-icon>
+        {{ 'groups.events' | translate }}
+      </a>
       @if (isOfficer()) {
         <a mat-stroked-button [routerLink]="['/groups', detail.id, 'settings']" data-testid="settings-link">
           <mat-icon>settings</mat-icon>

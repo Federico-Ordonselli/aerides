@@ -75,12 +75,14 @@ backend/   Spring Boot API, package by feature under dev.ordonselli.raidboard
   user/      user entity and profile endpoint
   group/     groups, memberships, roles, invite codes, per-group authorization (GroupSecurity)
   game/      RAWG client and per-group game catalog
+  event/     events, slots, weekly series, paginated list with JPA Specifications
+  signup/    sign-ups, waitlist promotion, approvals (row locks against overbooking)
   audit/     audit log written in the same transaction as each change
   common/    error handling (ProblemDetail), rate limiting, validation, OpenAPI, cache, clock
 frontend/  Angular app
   core/      auth (service, interceptor, guards), HTTP error handling, i18n, layout
   shared/    reusable validators and components (empty state, confirm dialog)
-  features/  one folder per feature, lazy-loaded (auth, home, groups, games)
+  features/  one folder per feature, lazy-loaded (auth, home, groups, games, events)
 ```
 
 ## Security design
@@ -107,16 +109,28 @@ Every group-scoped endpoint is protected with `@PreAuthorize("@groupSecurity.has
 | Edit name and description, add/remove games | | ✓ | ✓ |
 | See the invite code | | ✓ | ✓ |
 | Change roles, remove members, regenerate the invite code, set the Discord webhook, delete the group | | | ✓ |
+| See published events, sign up, withdraw | ✓ | ✓ | ✓ |
+| See drafts; create, edit, publish, cancel, complete events; approve or reject sign-ups | | ✓ | ✓ |
 
 - **Non-members get 404, not 403**: the API doesn't even confirm that the group exists. Members without the required role get 403.
 - Services still load the caller's membership, and every group-owned lookup filters by group id (`findByIdAndGroupId`), so an id from another group is never found even if a check were forgotten.
-- The whole matrix is covered by `GroupAccessIT` (every endpoint × outsider, member, officer, owner).
+- The whole matrix is covered by `GroupAccessIT` and `EventAccessIT` (every endpoint × outsider, member, officer, owner), plus tests that reach another group's event, slot, sign-up or game through this group's URL.
 - The Discord webhook URL is a secret: only the owner can read it, it never appears in the audit log, and only `https://discord.com/api/webhooks/...` URLs are accepted, so the server can't be pointed at internal addresses (SSRF).
 - The owner can't leave the group or change their own role; ownership transfer isn't supported yet.
 
 ### Known trade-off: registration reveals whether an email exists
 
 `POST /api/auth/register` answers `409 Conflict` when the email is already registered, so someone could check whether an address has an account. This is a deliberate choice. Hiding it properly would mean an email-verification flow: always answer "check your inbox" and send either a confirmation link or an "you already have an account" email. That costs extra work and makes signing up clumsier, which isn't justified for this app's data. The impact is limited by the fact that you can only *check* addresses, not list them, and the endpoint can be rate-limited the same way as login if it ever becomes a problem.
+
+## Events and sign-ups
+
+- **No overbooking under concurrency** (business rule 4): a sign-up locks its slot row with `SELECT ... FOR UPDATE` (`@Lock(PESSIMISTIC_WRITE)`) before counting the confirmed seats, so parallel requests for the same slot run one after the other. `SignupConcurrencyIT` fires 20 parallel sign-ups at a 3-seat slot and checks that exactly 3 are confirmed and every position is unique; without the lock the same test ends with 10 confirmed. Withdraw, approve and capacity changes take the same lock, and the sign-up row is read only after it, so its status is current.
+- **One active sign-up per user per event** is enforced by a partial unique index in PostgreSQL, which also covers two parallel requests for *different* slots (they don't share a lock).
+- **Waitlist**: a full slot puts the user on the waitlist, in FIFO order by `position`. When a confirmed user withdraws, or an officer adds seats, the first waitlisted users are promoted in the same transaction, and a `SignupPromotedEvent` is published after the commit (`@TransactionalEventListener`); Milestone 4 turns it into an email and a WebSocket message.
+- **Withdrawal deadline** (rule 5): confirmed users can't withdraw after `startsAt - withdrawDeadlineHours`. Waitlisted and pending users hold no seat, so they can always leave.
+- **Editing safely**: the client sends back the `version` it loaded, and the update is refused with 409 if the event changed in the meantime. Every update also forces a version increment, so slot-only changes are covered too. Capacity can't go below the confirmed participants, and a slot with active sign-ups can't be removed.
+- **Weekly series**: a series is stored as real events sharing a `series_id`, because sign-ups, reminders and statistics all need real rows. Weeks are added in the organizer's time zone, so "Thursday 21:00 in Rome" stays at 21:00 after the daylight saving change. Editing or cancelling acts on one occurrence.
+- **Calendar**: FullCalendar (MIT packages only) is loaded with `@defer`, in its own chunk, only when the calendar view is opened; it asks the API only for the visible date range.
 
 ## Configuration
 
@@ -126,7 +140,7 @@ Everything that changes between environments comes from environment variables. S
 
 - [x] **1. Foundation**: monorepo, database schema (Flyway), authentication with JWT + refresh-token rotation, error handling, Swagger, Angular shell with login and register
 - [x] **2. Groups and games**: group CRUD, invite codes, member roles, audit log, RAWG game catalog
-- [ ] **3. Events and sign-ups**: slots, waitlist promotion, concurrency-safe sign-ups, recurrence, calendar
+- [x] **3. Events and sign-ups**: slots, waitlist promotion, concurrency-safe sign-ups, recurrence, calendar
 - [ ] **4. Real-time and notifications**: WebSocket updates, reminder emails, Discord webhooks
 - [ ] **5. Dashboard and polish**: statistics, audit log page, responsive layout
 - [ ] **6. Quality and delivery**: Playwright e2e, GitHub Actions, Terraform for Azure, demo data
@@ -137,3 +151,7 @@ Tracked improvements that are not bugs, deliberately left for later:
 
 - **"Recognized device" cookie**: after a successful login, set a long-lived signed cookie. Logins from a recognized device skip the per-account rate limit, so an attacker who hits it can't lock the real user out. Today the lockout lasts at most 15 minutes (see [Security design](#security-design)).
 - **Shared rate-limit store**: move Bucket4j buckets to Redis (or to the gateway), so limits hold across instances and can't be reset by evicting entries from the in-memory cache.
+- **Edit a whole weekly series**: today editing and cancelling act on one occurrence at a time.
+- **Sign-ups of removed members**: a member who leaves or is removed keeps their sign-ups; they should be withdrawn (and the waitlist promoted) in the same transaction.
+- **Lock timeout on slot rows**: a sign-up waits as long as needed for the slot lock. A `lock_timeout` would turn a stuck transaction into a quick "try again" error.
+- **Calendar styles out of the initial bundle**: FullCalendar's CSS (~30 kB) is a global stylesheet; it could be loaded together with the deferred calendar chunk.

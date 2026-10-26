@@ -1,0 +1,124 @@
+<a routerLink=".." class="back-link">
+  <mat-icon>arrow_back</mat-icon>
+  {{ 'events.detail.backToList' | translate }}
+</a>
+
+@if (event.isLoading() && !event.hasValue()) {
+  <mat-progress-bar mode="indeterminate" />
+} @else if (event.error() && !event.hasValue()) {
+  <app-empty-state icon="event_busy" [title]="'events.detail.notFound' | translate" [message]="'events.detail.notFoundMessage' | translate">
+    <a mat-flat-button routerLink="..">{{ 'events.detail.backToList' | translate }}</a>
+  </app-empty-state>
+} @else if (event.hasValue()) {
+  @let detail = event.value();
+  @let locale = languageService.current();
+  <header class="event-header">
+    <div>
+      <div class="title-row">
+        <h1 data-testid="event-title">{{ detail.title }}</h1>
+        <app-event-status [status]="detail.status" />
+      </div>
+      <p class="meta">
+        <mat-icon aria-hidden="true">schedule</mat-icon>
+        {{ detail.startsAt | date: 'EEEE d MMMM y, HH:mm' : undefined : locale }}
+        · {{ 'events.detail.duration' | translate: { minutes: detail.durationMinutes } }}
+      </p>
+      @if (detail.game) {
+        <p class="meta">
+          <mat-icon aria-hidden="true">sports_esports</mat-icon>
+          {{ detail.game.name }}
+        </p>
+      }
+      @if (detail.seriesId) {
+        <p class="meta">
+          <mat-icon aria-hidden="true">repeat</mat-icon>
+          {{ 'events.detail.weeklySeries' | translate }}
+        </p>
+      }
+      @if (detail.withdrawDeadlineHours > 0) {
+        <p class="meta">
+          <mat-icon aria-hidden="true">event_busy</mat-icon>
+          {{ 'events.detail.deadline' | translate: { date: (detail.withdrawDeadline | date: 'EEE d MMM, HH:mm' : undefined : locale) } }}
+        </p>
+      }
+      @if (detail.requiresApproval) {
+        <p class="meta">
+          <mat-icon aria-hidden="true">how_to_reg</mat-icon>
+          {{ 'events.detail.requiresApproval' | translate }}
+        </p>
+      }
+      @if (detail.description) {
+        <p class="description">{{ detail.description }}</p>
+      }
+    </div>
+
+    @if (isOfficer()) {
+      <div class="officer-actions">
+        @if (isEditable(detail)) {
+          <a mat-stroked-button routerLink="edit" data-testid="edit-event">
+            <mat-icon>edit</mat-icon>
+            {{ 'events.detail.edit' | translate }}
+          </a>
+        }
+        @if (detail.status === 'DRAFT') {
+          <button mat-flat-button (click)="publish()" data-testid="publish-event">
+            <mat-icon>publish</mat-icon>
+            {{ 'events.detail.publish' | translate }}
+          </button>
+        }
+        @if (detail.status === 'PUBLISHED' && hasStarted(detail)) {
+          <button mat-stroked-button (click)="complete()">
+            <mat-icon>task_alt</mat-icon>
+            {{ 'events.detail.complete' | translate }}
+          </button>
+        }
+        @if (isEditable(detail)) {
+          <button mat-button (click)="cancel()" data-testid="cancel-event">
+            <mat-icon>cancel</mat-icon>
+            {{ 'events.detail.cancelEvent' | translate }}
+          </button>
+        }
+      </div>
+    }
+  </header>
+
+  @if (mySignup(); as signup) {
+    <div class="my-signup" data-testid="my-signup">
+      <mat-icon aria-hidden="true">person</mat-icon>
+      <span>
+        @switch (signup.status) {
+          @case ('CONFIRMED') {
+            {{ 'events.detail.youAreConfirmed' | translate: { role: mySlot()?.roleName } }}
+          }
+          @case ('WAITLISTED') {
+            {{ 'events.detail.youAreWaitlisted' | translate: { role: mySlot()?.roleName, position: myWaitlistPosition() } }}
+          }
+          @case ('PENDING') {
+            {{ 'events.detail.youArePending' | translate: { role: mySlot()?.roleName } }}
+          }
+        }
+      </span>
+      @if (detail.status === 'PUBLISHED') {
+        @if (signup.status === 'CONFIRMED' && deadlinePassed(detail)) {
+          <span class="hint">{{ 'events.detail.deadlinePassed' | translate }}</span>
+        } @else {
+          <button mat-stroked-button (click)="withdraw()" data-testid="withdraw">{{ 'events.detail.withdraw' | translate }}</button>
+        }
+      }
+    </div>
+  }
+
+  <div class="slots">
+    @for (slot of detail.slots; track slot.id) {
+      <app-slot-card
+        [slot]="slot"
+        [myUserId]="myUserId()"
+        [canSignUp]="canSignUp(detail)"
+        [canManage]="isOfficer() && detail.status === 'PUBLISHED'"
+        (signUp)="signUp($event)"
+        (approve)="approve($event)"
+        (reject)="reject($event)"
+      />
+    }
+  </div>
+}

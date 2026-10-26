@@ -1,0 +1,157 @@
+<a [routerLink]="['..']" class="back-link">
+  <mat-icon>arrow_back</mat-icon>
+  {{ (isEdit() ? 'events.form.backToEvent' : 'events.form.backToList') | translate }}
+</a>
+<h1>{{ (isEdit() ? 'events.form.editTitle' : 'events.form.createTitle') | translate }}</h1>
+
+@if (isEdit() && existing.isLoading()) {
+  <mat-progress-bar mode="indeterminate" />
+} @else if (isEdit() && existing.error()) {
+  <div class="form-alert" role="alert">{{ 'events.detail.notFound' | translate }}</div>
+} @else if (existing.hasValue() && !canEdit(existing.value())) {
+  <div class="form-alert" role="alert">{{ 'events.form.notEditable' | translate }}</div>
+} @else {
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    @if (error(); as formError) {
+      <div class="form-alert" role="alert" data-testid="form-error">
+        {{ formError.key | translate }}
+        @if (formError.detail) {
+          <small class="detail">{{ formError.detail }}</small>
+        }
+      </div>
+    }
+
+    <mat-card appearance="outlined">
+      <mat-card-content class="fields">
+        <mat-form-field class="wide">
+          <mat-label>{{ 'events.fields.title' | translate }}</mat-label>
+          <input matInput formControlName="title" [maxlength]="limits.title" data-testid="title" />
+          @if (form.controls.title.hasError('required')) {
+            <mat-error>{{ 'validation.required' | translate }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field class="wide">
+          <mat-label>{{ 'events.fields.description' | translate }}</mat-label>
+          <textarea matInput formControlName="description" rows="3" [maxlength]="limits.description"></textarea>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>{{ 'events.fields.game' | translate }}</mat-label>
+          <mat-select formControlName="gameId">
+            <mat-option [value]="null">{{ 'events.form.noGame' | translate }}</mat-option>
+            @for (game of games.hasValue() ? games.value() : []; track game.id) {
+              <mat-option [value]="game.id">{{ game.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <div class="row">
+          <mat-form-field>
+            <mat-label>{{ 'events.fields.date' | translate }}</mat-label>
+            <input matInput [matDatepicker]="datepicker" formControlName="startsAt" data-testid="date" />
+            <mat-datepicker-toggle matIconSuffix [for]="datepicker" />
+            <mat-datepicker #datepicker />
+            @if (form.controls.startsAt.hasError('required')) {
+              <mat-error>{{ 'validation.required' | translate }}</mat-error>
+            } @else if (form.controls.startsAt.hasError('futureDate')) {
+              <mat-error data-testid="future-date-error">{{ 'events.form.futureDate' | translate }}</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field>
+            <mat-label>{{ 'events.fields.time' | translate }}</mat-label>
+            <input matInput [matTimepicker]="timepicker" formControlName="startsAt" />
+            <mat-timepicker-toggle matIconSuffix [for]="timepicker" />
+            <mat-timepicker #timepicker />
+          </mat-form-field>
+          <mat-form-field>
+            <mat-label>{{ 'events.fields.durationMinutes' | translate }}</mat-label>
+            <input matInput type="number" formControlName="durationMinutes" [min]="limits.minDuration" [max]="limits.maxDuration" />
+            <mat-hint>{{ 'events.form.minutes' | translate }}</mat-hint>
+            @if (form.controls.durationMinutes.invalid) {
+              <mat-error>{{ 'validation.range' | translate: { min: limits.minDuration, max: limits.maxDuration } }}</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="row">
+          <mat-form-field>
+            <mat-label>{{ 'events.fields.withdrawDeadlineHours' | translate }}</mat-label>
+            <input matInput type="number" formControlName="withdrawDeadlineHours" min="0" [max]="limits.maxDeadlineHours" />
+            <mat-hint>{{ 'events.form.deadlineHint' | translate }}</mat-hint>
+            @if (form.controls.withdrawDeadlineHours.invalid) {
+              <mat-error>{{ 'validation.range' | translate: { min: 0, max: limits.maxDeadlineHours } }}</mat-error>
+            }
+          </mat-form-field>
+          <mat-checkbox formControlName="requiresApproval">{{ 'events.fields.requiresApproval' | translate }}</mat-checkbox>
+        </div>
+
+        @if (!isEdit()) {
+          <div class="row">
+            <mat-checkbox formControlName="repeatWeekly" data-testid="repeat-weekly">{{ 'events.form.repeatWeekly' | translate }}</mat-checkbox>
+            @if (form.controls.repeatWeekly.value) {
+              <mat-form-field>
+                <mat-label>{{ 'events.fields.weeklyOccurrences' | translate }}</mat-label>
+                <input matInput type="number" formControlName="weeklyOccurrences" [min]="limits.minOccurrences" [max]="limits.maxOccurrences" />
+                @if (form.controls.weeklyOccurrences.invalid) {
+                  <mat-error>{{ 'validation.range' | translate: { min: limits.minOccurrences, max: limits.maxOccurrences } }}</mat-error>
+                }
+              </mat-form-field>
+            }
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card appearance="outlined">
+      <mat-card-header>
+        <mat-card-title>{{ 'events.form.slots' | translate }}</mat-card-title>
+        <mat-card-subtitle>{{ 'events.form.slotsHint' | translate }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content formArrayName="slots" class="slots">
+        @for (slot of slots.controls; track slot; let i = $index) {
+          <div class="slot-row" [formGroupName]="i" data-testid="slot-row">
+            <mat-form-field>
+              <mat-label>{{ 'events.fields.roleName' | translate }}</mat-label>
+              <input matInput formControlName="roleName" [maxlength]="limits.roleName" data-testid="role-name" />
+              @if (slot.controls['roleName'].hasError('required')) {
+                <mat-error>{{ 'validation.required' | translate }}</mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field class="capacity">
+              <mat-label>{{ 'events.fields.capacity' | translate }}</mat-label>
+              <input matInput type="number" formControlName="capacity" min="1" [max]="limits.maxCapacity" data-testid="capacity" />
+              @if (slot.controls['capacity'].invalid) {
+                <mat-error data-testid="capacity-error">{{ 'validation.range' | translate: { min: 1, max: limits.maxCapacity } }}</mat-error>
+              }
+            </mat-form-field>
+            <button
+              mat-icon-button
+              type="button"
+              (click)="removeSlot(i)"
+              [disabled]="slots.length === 1"
+              [matTooltip]="'events.form.removeSlot' | translate"
+              [attr.aria-label]="'events.form.removeSlot' | translate"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        }
+        @if (slots.hasError('duplicateValues')) {
+          <div class="form-alert" role="alert" data-testid="duplicate-roles">{{ 'events.form.duplicateRoles' | translate }}</div>
+        }
+        <button mat-stroked-button type="button" (click)="addSlot()" [disabled]="slots.length >= maxSlots" data-testid="add-slot">
+          <mat-icon>add</mat-icon>
+          {{ 'events.form.addSlot' | translate }}
+        </button>
+      </mat-card-content>
+    </mat-card>
+
+    <div class="form-actions">
+      <a mat-button [routerLink]="['..']">{{ 'common.cancel' | translate }}</a>
+      <button mat-flat-button type="submit" [disabled]="saving()" data-testid="save-event">
+        {{ (isEdit() ? 'common.save' : 'events.form.create') | translate }}
+      </button>
+    </div>
+  </form>
+}

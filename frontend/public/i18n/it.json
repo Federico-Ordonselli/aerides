@@ -39,7 +39,8 @@
     "length": "Deve contenere da {{min}} a {{max}} caratteri",
     "passwordsMismatch": "Le password non coincidono",
     "tooManyBytes": "Troppo lunga: le lettere accentate e i simboli occupano più spazio",
-    "maxLength": "Massimo {{max}} caratteri"
+    "maxLength": "Massimo {{max}} caratteri",
+    "range": "Deve essere tra {{min}} e {{max}}"
   },
   "errors": {
     "generic": "Qualcosa è andato storto, riprova",
@@ -134,7 +135,8 @@
       "deleteTitle": "Eliminare il gruppo?",
       "deleteMessage": "\"{{name}}\" verrà eliminato per sempre insieme a tutti i suoi dati.",
       "deleted": "Gruppo eliminato"
-    }
+    },
+    "events": "Eventi"
   },
   "games": {
     "search": {
@@ -153,5 +155,110 @@
     "added": "{{name}} aggiunto",
     "alreadyAdded": "{{name}} è già nel catalogo",
     "attribution": "Dati sui giochi forniti da"
+  },
+  "events": {
+    "status": {
+      "DRAFT": "Bozza",
+      "PUBLISHED": "Pubblicato",
+      "CANCELLED": "Annullato",
+      "COMPLETED": "Concluso"
+    },
+    "fields": {
+      "title": "Titolo",
+      "description": "Descrizione",
+      "game": "Gioco",
+      "status": "Stato",
+      "startsAt": "Quando",
+      "date": "Data",
+      "time": "Ora",
+      "durationMinutes": "Durata",
+      "requiresApproval": "Le iscrizioni vanno approvate da un officer",
+      "withdrawDeadlineHours": "Scadenza per ritirarsi (ore prima)",
+      "weeklyOccurrences": "Numero di settimane",
+      "roleName": "Ruolo",
+      "capacity": "Posti"
+    },
+    "list": {
+      "title": "Eventi",
+      "new": "Nuovo evento",
+      "view": "Vista",
+      "listView": "Lista",
+      "calendarView": "Calendario",
+      "allStatuses": "Tutti gli stati",
+      "allGames": "Tutti i giochi",
+      "dateRange": "Date",
+      "from": "Dal",
+      "to": "Al",
+      "allDates": "Tutte le date",
+      "seats": "Posti",
+      "emptyTitle": "Nessun evento",
+      "emptyMessage": "Nessun evento corrisponde a questi filtri."
+    },
+    "form": {
+      "createTitle": "Nuovo evento",
+      "editTitle": "Modifica evento",
+      "backToList": "Eventi",
+      "backToEvent": "Torna all'evento",
+      "create": "Crea come bozza",
+      "noGame": "Nessun gioco",
+      "minutes": "Minuti",
+      "deadlineHint": "Dopo questa soglia i confermati non possono ritirarsi. 0 = fino all'inizio",
+      "repeatWeekly": "Ripeti ogni settimana",
+      "slots": "Slot",
+      "slotsHint": "I ruoli e quanti posti ha ciascuno",
+      "addSlot": "Aggiungi slot",
+      "removeSlot": "Rimuovi slot",
+      "duplicateRoles": "Ogni ruolo deve avere un nome diverso",
+      "futureDate": "L'evento deve essere nel futuro",
+      "conflict": "L'evento è stato modificato nel frattempo, oppure la modifica è in conflitto con le iscrizioni attuali.",
+      "invalid": "Alcuni valori non sono validi.",
+      "notFound": "L'evento o il gioco non esistono più.",
+      "notEditable": "Un evento annullato o concluso non si può modificare."
+    },
+    "detail": {
+      "backToList": "Eventi",
+      "notFound": "Evento non trovato",
+      "notFoundMessage": "L'evento non esiste o non è ancora stato pubblicato.",
+      "duration": "{{minutes}} min",
+      "weeklySeries": "Fa parte di una serie settimanale",
+      "deadline": "I confermati possono ritirarsi fino a {{date}}",
+      "requiresApproval": "Le iscrizioni vanno approvate da un officer",
+      "edit": "Modifica",
+      "publish": "Pubblica",
+      "complete": "Segna come concluso",
+      "cancelEvent": "Annulla evento",
+      "cancelTitle": "Annullare l'evento?",
+      "cancelMessage": "I membri non potranno più iscriversi. L'operazione non si può annullare.",
+      "seatsTaken": "{{taken}} posti occupati su {{capacity}}",
+      "waitlist": "Lista d'attesa",
+      "pending": "In attesa di approvazione",
+      "approve": "Approva",
+      "reject": "Rifiuta",
+      "signUp": "Iscriviti",
+      "joinWaitlist": "Mettiti in lista d'attesa",
+      "withdraw": "Ritirati",
+      "withdrawTitle": "Ritirarti dall'evento?",
+      "withdrawMessage": "Se avevi un posto, passa al primo della lista d'attesa.",
+      "youAreConfirmed": "Sei confermato come {{role}}",
+      "youAreWaitlisted": "Sei il numero {{position}} nella lista d'attesa per {{role}}",
+      "youArePending": "La tua iscrizione come {{role}} è in attesa di approvazione",
+      "deadlinePassed": "La scadenza per ritirarsi è passata: contatta un officer",
+      "signedUp": {
+        "CONFIRMED": "Sei confermato come {{role}}",
+        "WAITLISTED": "Lo slot è pieno: sei in lista d'attesa per {{role}}",
+        "PENDING": "Iscrizione inviata: un officer la valuterà"
+      },
+      "approved": {
+        "CONFIRMED": "{{name}} approvato",
+        "WAITLISTED": "{{name}} approvato: lo slot è pieno, quindi in lista d'attesa"
+      },
+      "rejected": "Iscrizione di {{name}} rifiutata",
+      "withdrawn": "Ti sei ritirato dall'evento",
+      "published": "Evento pubblicato",
+      "completed": "Evento segnato come concluso",
+      "cancelled": "Evento annullato",
+      "outdated": "Qualcuno ha modificato l'evento nel frattempo: la pagina è stata aggiornata",
+      "notAllowedNow": "Questa azione non è più possibile per questo evento"
+    }
   }
 }

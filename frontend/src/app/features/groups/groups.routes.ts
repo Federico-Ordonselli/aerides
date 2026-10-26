@@ -17,6 +17,11 @@ export const GROUP_ROUTES: Routes = [
     loadComponent: () => import('./group-detail.component').then((m) => m.GroupDetailComponent),
   },
   {
+    // No component here: the event routes inherit the :groupId parameter
+    path: ':groupId/events',
+    loadChildren: () => import('../events/events.routes').then((m) => m.EVENT_ROUTES),
+  },
+  {
     path: ':groupId/settings',
     canActivate: [groupRoleGuard('OFFICER')],
     loadComponent: () => import('./group-settings.component').then((m) => m.GroupSettingsComponent),

@@ -1,0 +1,50 @@
+.slot {
+  height: 100%;
+}
+
+mat-progress-bar {
+  margin: 0.75rem 0 0.25rem;
+}
+
+h3 {
+  margin: 0.75rem 0 0.25rem;
+  font: var(--mat-sys-title-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.people {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2rem;
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--mat-sys-primary);
+  }
+}
+
+.waitlist {
+  padding-left: 1.5rem;
+  list-style: decimal;
+
+  li {
+    display: list-item;
+  }
+}
+
+.me {
+  font-weight: 600;
+}
+
+.name {
+  flex: 1;
+}

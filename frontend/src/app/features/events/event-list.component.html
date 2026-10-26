@@ -1,0 +1,134 @@
+<header class="page-header">
+  <div>
+    <a [routerLink]="['/groups', groupId()]" class="back-link">
+      <mat-icon>arrow_back</mat-icon>
+      {{ group.hasValue() ? group.value().name : ('groups.backToList' | translate) }}
+    </a>
+    <h1>{{ 'events.list.title' | translate }}</h1>
+  </div>
+  <div class="actions">
+    <mat-button-toggle-group
+      hideSingleSelectionIndicator
+      [value]="view()"
+      (change)="view.set($event.value)"
+      [attr.aria-label]="'events.list.view' | translate"
+    >
+      <mat-button-toggle value="list" data-testid="view-list">
+        <mat-icon>view_list</mat-icon>
+        {{ 'events.list.listView' | translate }}
+      </mat-button-toggle>
+      <mat-button-toggle value="calendar" data-testid="view-calendar">
+        <mat-icon>calendar_month</mat-icon>
+        {{ 'events.list.calendarView' | translate }}
+      </mat-button-toggle>
+    </mat-button-toggle-group>
+    @if (isOfficer()) {
+      <a mat-flat-button routerLink="new" data-testid="new-event">
+        <mat-icon>add</mat-icon>
+        {{ 'events.list.new' | translate }}
+      </a>
+    }
+  </div>
+</header>
+
+@if (view() === 'list') {
+  <form [formGroup]="filterForm" class="filters">
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'events.fields.status' | translate }}</mat-label>
+      <mat-select formControlName="status">
+        <mat-option [value]="null">{{ 'events.list.allStatuses' | translate }}</mat-option>
+        @for (status of statuses; track status) {
+          @if (status !== 'DRAFT' || isOfficer()) {
+            <mat-option [value]="status">{{ 'events.status.' + status | translate }}</mat-option>
+          }
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'events.fields.game' | translate }}</mat-label>
+      <mat-select formControlName="gameId">
+        <mat-option [value]="null">{{ 'events.list.allGames' | translate }}</mat-option>
+        @for (game of games.hasValue() ? games.value() : []; track game.id) {
+          <mat-option [value]="game.id">{{ game.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'events.list.dateRange' | translate }}</mat-label>
+      <mat-date-range-input [rangePicker]="rangePicker">
+        <input matStartDate formControlName="from" [placeholder]="'events.list.from' | translate" />
+        <input matEndDate formControlName="to" [placeholder]="'events.list.to' | translate" />
+      </mat-date-range-input>
+      <mat-datepicker-toggle matIconSuffix [for]="rangePicker" />
+      <mat-date-range-picker #rangePicker />
+    </mat-form-field>
+    <button mat-button type="button" (click)="clearDates()">{{ 'events.list.allDates' | translate }}</button>
+  </form>
+
+  @if (events.isLoading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+  @if (events.error()) {
+    <app-empty-state icon="cloud_off" [title]="'errors.generic' | translate">
+      <button mat-stroked-button (click)="events.reload()">{{ 'common.retry' | translate }}</button>
+    </app-empty-state>
+  } @else if (events.hasValue()) {
+    @let page = events.value();
+    @if (page.totalElements === 0) {
+      <app-empty-state icon="event_busy" [title]="'events.list.emptyTitle' | translate" [message]="'events.list.emptyMessage' | translate" />
+    } @else {
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="page.content" matSort (matSortChange)="sortChanged($event)" matSortActive="startsAt" matSortDirection="asc" matSortDisableClear>
+          <ng-container matColumnDef="startsAt">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'events.fields.startsAt' | translate }}</th>
+            <td mat-cell *matCellDef="let event">
+              {{ event.startsAt | date: 'EEE d MMM y, HH:mm' : undefined : languageService.current() }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="title">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'events.fields.title' | translate }}</th>
+            <td mat-cell *matCellDef="let event">
+              <span class="title">{{ event.title }}</span>
+              @if (event.game) {
+                <span class="game">{{ event.game.name }}</span>
+              }
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>{{ 'events.fields.status' | translate }}</th>
+            <td mat-cell *matCellDef="let event"><app-event-status [status]="event.status" /></td>
+          </ng-container>
+          <ng-container matColumnDef="seats">
+            <th mat-header-cell *matHeaderCellDef>{{ 'events.list.seats' | translate }}</th>
+            <td mat-cell *matCellDef="let event">{{ event.confirmedCount }} / {{ event.totalCapacity }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columns"></tr>
+          <tr
+            mat-row
+            *matRowDef="let event; columns: columns"
+            class="event-row"
+            tabindex="0"
+            (click)="openEvent(event.id)"
+            (keydown.enter)="openEvent(event.id)"
+            data-testid="event-row"
+          ></tr>
+        </table>
+      </div>
+      <mat-paginator
+        [length]="page.totalElements"
+        [pageIndex]="page.page"
+        [pageSize]="page.size"
+        [pageSizeOptions]="[10, 25, 50]"
+        (page)="pageChanged($event)"
+      />
+    }
+  }
+} @else {
+  <!-- FullCalendar is a large library: its chunk is downloaded only the first time the calendar is shown -->
+  @defer {
+    <app-event-calendar [groupId]="groupId()" (eventSelected)="openEvent($event)" />
+  } @loading (minimum 200ms) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+}

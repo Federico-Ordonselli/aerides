@@ -1,0 +1,69 @@
+<mat-card appearance="outlined" class="slot" data-testid="slot-card">
+  <mat-card-header>
+    <mat-card-title>{{ slot().roleName }}</mat-card-title>
+    <mat-card-subtitle data-testid="slot-count">
+      {{ 'events.detail.seatsTaken' | translate: { taken: slot().confirmed.length, capacity: slot().capacity } }}
+    </mat-card-subtitle>
+  </mat-card-header>
+  <mat-progress-bar mode="determinate" [value]="fillPercent()" />
+
+  <mat-card-content>
+    <ul class="people">
+      @for (signup of slot().confirmed; track signup.id) {
+        <li [class.me]="signup.userId === myUserId()">
+          <mat-icon aria-hidden="true">check_circle</mat-icon>
+          {{ signup.displayName }}
+        </li>
+      }
+    </ul>
+
+    @if (slot().waitlisted.length > 0) {
+      <h3>{{ 'events.detail.waitlist' | translate }}</h3>
+      <ol class="people waitlist" data-testid="waitlist">
+        @for (signup of slot().waitlisted; track signup.id) {
+          <li [class.me]="signup.userId === myUserId()">{{ signup.displayName }}</li>
+        }
+      </ol>
+    }
+
+    @if (slot().pending.length > 0) {
+      <h3>{{ 'events.detail.pending' | translate }}</h3>
+      <ul class="people">
+        @for (signup of slot().pending; track signup.id) {
+          <li [class.me]="signup.userId === myUserId()" data-testid="pending-signup">
+            <mat-icon aria-hidden="true">hourglass_top</mat-icon>
+            <span class="name">{{ signup.displayName }}</span>
+            @if (canManage()) {
+              <button
+                mat-icon-button
+                (click)="approve.emit(signup)"
+                [matTooltip]="'events.detail.approve' | translate"
+                [attr.aria-label]="'events.detail.approve' | translate"
+                data-testid="approve"
+              >
+                <mat-icon>check</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                (click)="reject.emit(signup)"
+                [matTooltip]="'events.detail.reject' | translate"
+                [attr.aria-label]="'events.detail.reject' | translate"
+                data-testid="reject"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </mat-card-content>
+
+  @if (canSignUp()) {
+    <mat-card-actions>
+      <button mat-flat-button (click)="signUp.emit(slot())" data-testid="sign-up">
+        {{ (isFull() ? 'events.detail.joinWaitlist' : 'events.detail.signUp') | translate }}
+      </button>
+    </mat-card-actions>
+  }
+</mat-card>

@@ -52,6 +52,9 @@
               }
             ],
             "styles": [
+              "@fullcalendar/angular/skeleton.css",
+              "@fullcalendar/angular/themes/monarch/theme.css",
+              "@fullcalendar/angular/themes/monarch/palettes/purple.css",
               "src/styles.scss"
             ]
           },

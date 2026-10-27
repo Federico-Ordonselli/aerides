@@ -9,6 +9,7 @@ Under the hood it is a **resource-booking business application**: roles, approva
 [![E2E](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/e2e.yml/badge.svg)](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/e2e.yml)
 [![Docker images](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/docker.yml/badge.svg)](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/docker.yml)
 [![Infrastructure](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/infra.yml/badge.svg)](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/infra.yml)
+[![Secrets](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/secrets.yml/badge.svg)](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/secrets.yml)
 
 > Full scope, domain model and the 10 business rules: [docs/SPEC.md](docs/SPEC.md). Built in six milestones, see [Roadmap](#roadmap).
 
@@ -150,13 +151,14 @@ The tests that guard a rule (no overbooking, exactly-once emails, lock timeout, 
 
 ### Continuous integration
 
-Five GitHub Actions workflows ([`.github/workflows`](.github/workflows)), each triggered only by the folders it covers:
+Six GitHub Actions workflows ([`.github/workflows`](.github/workflows)), each triggered only by the folders it covers (secret scanning covers everything):
 
 - **Backend**: `./mvnw verify` with Testcontainers (Docker is available on the runners).
 - **Frontend**: lint, Jest, production build (fails over the bundle budget).
 - **E2E**: `docker compose up --wait`, then Playwright with Chromium; traces and screenshots are uploaded when it fails.
 - **Docker images**: built on every pull request, pushed to GitHub Container Registry from `main`, tagged `latest` and `sha-<commit>`.
 - **Infrastructure**: `terraform fmt -check` and `terraform validate`.
+- **Secrets**: gitleaks on the commits of every push and pull request, the whole history on demand. Reviewed false positives are listed, with the reason, in [`.gitleaksignore`](.gitleaksignore).
 
 ## Deployment on Azure (Terraform)
 
@@ -266,7 +268,7 @@ Services publish domain events (`EventChangedEvent`, `SignupPromotedEvent`, `Eve
 
 ## Configuration
 
-Everything that changes between environments comes from environment variables. See [`.env.example`](.env.example). Secrets have no default value, and the backend refuses to start if `JWT_SECRET` is missing or shorter than 32 characters.
+Everything that changes between environments comes from environment variables. See [`.env.example`](.env.example). Secrets have no default value, and the backend refuses to start if `JWT_SECRET` is missing or shorter than 32 bytes (HS256's minimum), with a message that says what to do and never prints the value.
 
 ## Roadmap
 

@@ -43,6 +43,8 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 @EnableConfigurationProperties(SecurityProperties.class)
 public class SecurityConfig {
 
+    static final int MIN_JWT_SECRET_BYTES = 32;
+
     private static final String[] PUBLIC_PATHS = {
             "/api/auth/**",
             "/v3/api-docs/**",
@@ -81,7 +83,24 @@ public class SecurityConfig {
 
     @Bean
     public SecretKey jwtSigningKey(SecurityProperties properties) {
-        return new SecretKeySpec(properties.jwtSecret().getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        return signingKey(properties.jwtSecret());
+    }
+
+    /**
+     * Checked here and not with bean validation on {@link SecurityProperties}: a binding failure prints the
+     * rejected value in the startup log, and this value is the secret.
+     */
+    static SecretKey signingKey(String secret) {
+        if (secret == null || secret.isBlank()) {
+            throw new InvalidJwtSecretException("JWT_SECRET is not set. There is no default outside local development.");
+        }
+        byte[] key = secret.getBytes(StandardCharsets.UTF_8);
+        // HS256 needs a key of at least 256 bits; bytes count, not characters
+        if (key.length < MIN_JWT_SECRET_BYTES) {
+            throw new InvalidJwtSecretException(
+                    "JWT_SECRET is too short: HS256 needs at least " + MIN_JWT_SECRET_BYTES + " bytes.");
+        }
+        return new SecretKeySpec(key, "HmacSHA256");
     }
 
     @Bean

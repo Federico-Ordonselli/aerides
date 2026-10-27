@@ -54,7 +54,8 @@ raidboard:
     hash-app-password: ${DB_HASH_APP_PASSWORD:true}
 
   security:
-    jwt-secret: ${JWT_SECRET}
+    # Empty when unset, and then the application refuses to start (SecurityConfig): there is no default
+    jwt-secret: ${JWT_SECRET:}
     issuer: raidboard
     access-token-ttl: ${ACCESS_TOKEN_TTL:15m}
     refresh-token-ttl: ${REFRESH_TOKEN_TTL:14d}

@@ -1,0 +1,6 @@
+# Reviewed false positives (2026-10-27). One fingerprint per line: commit:file:rule:line.
+# The name of a Container Apps secret, not its value (the value is var.registry_password, sensitive)
+3f0720c030f7e8084e853f11c7fa57bc069baffb:infra/apps.tf:hashicorp-tf-password:66
+3f0720c030f7e8084e853f11c7fa57bc069baffb:infra/apps.tf:hashicorp-tf-password:189
+# JWT key of the integration tests only (src/test); deployed environments must set JWT_SECRET
+3bc2738c0d28a5abb04f485665062be9e3ff11ef:backend/src/test/resources/application-test.yml:generic-api-key:3

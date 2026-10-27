@@ -92,8 +92,7 @@ docker compose up --build
 
 ## Live demo
 
-> **URL: [https://aerides.onrender.com/](https://aerides.onrender.com/)** · demo users `giulia@example.com` (owner), `marco@example.com` (officer), `luca@example.com` (member), password `aerides-demo`. All six accounts and what each one tests: [docs/demo-accounts.md](docs/demo-accounts.md).
-> ⏳ **Cold start**: the free instance sleeps after 15 minutes of inactivity, so the first request can take about a minute. After that it's fast.
+> **[Open the demo](https://federico-ordonselli.github.io/aerides/)**: the free instance sleeps after 15 idle minutes, this page wakes it up (about 2 minutes) and opens it. Direct link: [aerides.onrender.com](https://aerides.onrender.com/) · demo users `giulia@example.com` (owner), `marco@example.com` (officer), `luca@example.com` (member), password `aerides-demo`. All six accounts and what each one tests: [docs/demo-accounts.md](docs/demo-accounts.md).
 > Try it: log in as Luca in one browser and open "Raid: Vault of Glass", then as Giulia in another browser withdraw from the Tank slot: Luca is promoted and sees it live.
 
 The demo runs on [Render](https://render.com)'s free tier, from [`render.yaml`](render.yaml). It's a quick, free way to show the app; the production-like deployment is the [Azure Terraform configuration](#deployment-on-azure-terraform).

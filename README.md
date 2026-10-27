@@ -4,17 +4,69 @@ Raidboard is a multi-tenant web app where gaming groups (guilds, clans, tabletop
 
 Under the hood it is a **resource-booking business application**: roles, approvals, notifications, audit log and reporting.
 
-> 🚧 Work in progress, built milestone by milestone. See [Roadmap](#roadmap).
-> Full scope, domain model and business rules: [docs/SPEC.md](docs/SPEC.md).
+[![Backend](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/backend.yml/badge.svg)](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/backend.yml)
+[![Frontend](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/frontend.yml/badge.svg)](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/frontend.yml)
+[![E2E](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/e2e.yml/badge.svg)](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/e2e.yml)
+[![Docker images](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/docker.yml/badge.svg)](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/docker.yml)
+[![Infrastructure](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/infra.yml/badge.svg)](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/infra.yml)
+
+> Full scope, domain model and the 10 business rules: [docs/SPEC.md](docs/SPEC.md). Built in six milestones, see [Roadmap](#roadmap).
 
 ## Tech stack
 
 | Layer    | Technologies |
 |----------|--------------|
 | Backend  | Java 21, Spring Boot 4.1, Spring Security (JWT resource server), Spring Data JPA / Hibernate 7, PostgreSQL 17, Flyway, MapStruct, Bucket4j, springdoc-openapi |
-| Frontend | Angular 22 (standalone components, signals, zoneless), Angular Material 3, ngx-translate (IT/EN), Jest; coming next: FullCalendar (calendar view), Chart.js via ng2-charts (stats) |
-| Testing  | JUnit 5, Mockito, Testcontainers, MockMvc, Jest |
-| DevOps   | Docker, Docker Compose, nginx, Mailpit |
+| Frontend | Angular 22 (standalone components, signals, zoneless), Angular Material 3, RxJS, STOMP (rx-stomp), FullCalendar, Chart.js via ng2-charts, ngx-translate (IT/EN) |
+| Testing  | JUnit 5, Mockito, Testcontainers, MockMvc, WireMock, GreenMail, Awaitility, Jest, Playwright |
+| DevOps   | Docker, Docker Compose, nginx, GitHub Actions, GitHub Container Registry, Terraform (Azure Container Apps + PostgreSQL Flexible Server), Render (demo), Mailpit |
+
+## Architecture
+
+```mermaid
+flowchart LR
+    browser([Browser<br/>Angular SPA])
+    subgraph stack[docker compose / Azure Container Apps]
+        nginx[nginx<br/>static files + reverse proxy]
+        subgraph backend[Spring Boot backend]
+            api[REST API<br/>JWT, @PreAuthorize per group]
+            ws[STOMP broker<br/>/topic, /user/queue]
+            jobs[Scheduled jobs<br/>reminders, email retries,<br/>expired sockets]
+            listeners[After-commit listeners<br/>email, Discord, WebSocket]
+        end
+        db[(PostgreSQL<br/>Flyway)]
+        mail[SMTP<br/>Mailpit in dev]
+    end
+    rawg[[RAWG API]]
+    discord[[Discord webhook]]
+
+    browser -->|HTTPS /api| nginx
+    browser <-->|WebSocket /ws| nginx
+    nginx --> api
+    nginx <--> ws
+    api --> db
+    api -. domain events .-> listeners
+    listeners --> ws
+    listeners --> mail
+    listeners --> discord
+    jobs --> db
+    jobs --> mail
+    api -->|game search, cached| rawg
+```
+
+- **One origin**: nginx serves the Angular build and forwards `/api` and `/ws` to the backend, so the browser never makes a cross-origin call and the refresh cookie can be `SameSite=Strict`. The backend is never exposed directly.
+- **Package by feature** in the backend (`auth`, `group`, `event`, `signup`, ...), each with its controller, service, repository and DTOs. Entities never leave the service layer.
+- **Side effects after the commit**: services publish domain events in their transaction; WebSocket messages, emails and Discord posts are sent by listeners only once the data is committed (see [Real-time and notifications](#real-time-and-notifications)).
+- **PostgreSQL does the hard guarantees**: row locks against overbooking, partial unique indexes, `ON CONFLICT` for exactly-once emails. Each one has an integration test that fails without it.
+
+## Screenshots
+
+> _Placeholders: the images go in [`docs/screenshots/`](docs/screenshots/) (start the stack with demo data, see [Local development](#local-development))._
+
+| | |
+|---|---|
+| **Event detail**, live sign-ups and waitlist: `docs/screenshots/event-detail.png` | **Calendar** of the group's events: `docs/screenshots/calendar.png` |
+| **Statistics**: attendance, events per month, unfilled roles: `docs/screenshots/stats.png` | **Event form** with slots and weekly recurrence: `docs/screenshots/event-form.png` |
 
 ## Quick start (Docker)
 
@@ -37,11 +89,11 @@ docker compose up --build
 
 ## Live demo
 
-> **URL: _pending first deploy_** · users `giulia@example.com` (owner), `marco@example.com` (officer), `luca@example.com` (member), password `raidboard-demo`.
+> **URL: _pending first deploy_** · demo users `giulia@example.com` (owner), `marco@example.com` (officer), `luca@example.com` (member), password `raidboard-demo`.
 > Free hosting: the first request after 15 idle minutes takes about a minute while the service wakes up.
 > Try it: log in as Luca in one browser and open "Raid: Vault of Glass", then as Giulia in another browser withdraw from the Tank slot: Luca is promoted and sees it live.
 
-The demo runs on [Render](https://render.com)'s free tier, from [`render.yaml`](render.yaml). It's a quick way to show the app; the real deployment (Azure, Terraform, CI) is Milestone 6.
+The demo runs on [Render](https://render.com)'s free tier, from [`render.yaml`](render.yaml). It's a quick, free way to show the app; the production-like deployment is the [Azure Terraform configuration](#deployment-on-azure-terraform).
 
 - **One service instead of two**: free Render services can't receive private-network traffic, so the usual nginx-in-front-of-the-backend layout would need two public services. Instead, [`deploy/render/Dockerfile`](deploy/render/Dockerfile) builds the Angular app into the backend's `static/` folder, and the `demo` Spring profile serves it (`SinglePageAppConfig`). App, API and WebSocket keep one origin, so the `SameSite=Strict` refresh cookie and `/ws` work exactly as behind nginx. Static files and Angular routes get their own public security chain (GET only, outside `/api`, `/ws`, `/actuator`); everything else still goes through the normal default-deny chain.
 - **No emails**: the free tier blocks SMTP ports, and a public demo shouldn't email addresses people type in. In the `demo` profile `LoggingMailSender` writes a log line instead of sending; templates, the `notifications` table and the exactly-once reminder logic run as usual.
@@ -57,7 +109,8 @@ Requirements: JDK 21, Node 24, Docker (for PostgreSQL and the integration tests)
 # 1. Infrastructure only
 docker compose up -d postgres mailpit
 
-# 2. Backend on :8080 (the "dev" profile provides a development JWT secret)
+# 2. Backend on :8080. The "dev" profile provides a development JWT secret and,
+#    on an empty database, creates the demo data (users above, password raidboard-demo)
 cd backend
 SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
 
@@ -79,7 +132,35 @@ cd frontend
 npm run lint           # ESLint (angular-eslint)
 npm test               # Jest unit tests
 npm run build          # production build
+
+# End-to-end, against the running stack (docker compose up)
+cd e2e
+npm ci && npx playwright install chromium
+npx playwright test    # register → group → event → waitlist → live promotion + email
 ```
+
+| Suite | What it covers |
+|-------|----------------|
+| Backend unit (`*Test`, 123) | services with mocked repositories: business rules, permissions, edge cases |
+| Backend integration (`*IT`, 187) | the real API through the security filters, on PostgreSQL (Testcontainers): access matrix, concurrency, locks, emails (GreenMail), Discord (WireMock), WebSocket clients |
+| Frontend (Jest) | components, services, validators, interceptors, i18n keys |
+| End-to-end (Playwright) | the main flow with two users in two browsers, against the whole stack |
+
+The tests that guard a rule (no overbooking, exactly-once emails, lock timeout, access checks) were each checked by removing the guard and watching the test fail.
+
+### Continuous integration
+
+Five GitHub Actions workflows ([`.github/workflows`](.github/workflows)), each triggered only by the folders it covers:
+
+- **Backend**: `./mvnw verify` with Testcontainers (Docker is available on the runners).
+- **Frontend**: lint, Jest, production build (fails over the bundle budget).
+- **E2E**: `docker compose up --wait`, then Playwright with Chromium; traces and screenshots are uploaded when it fails.
+- **Docker images**: built on every pull request, pushed to GitHub Container Registry from `main`, tagged `latest` and `sha-<commit>`.
+- **Infrastructure**: `terraform fmt -check` and `terraform validate`.
+
+## Deployment on Azure (Terraform)
+
+[`infra/`](infra/) describes a production-like deployment: Azure Container Apps (nginx public, backend on an internal ingress, one replica because broker and rate limits are in memory), PostgreSQL 17 Flexible Server, Log Analytics, secrets as Container Apps secrets. It is **written and validated in CI, never applied**. Design choices, the known gap (private networking) and how to run it are in [infra/README.md](infra/README.md).
 
 ## Project structure
 
@@ -93,13 +174,18 @@ backend/   Spring Boot API, package by feature under dev.ordonselli.raidboard
   signup/    sign-ups, waitlist promotion, approvals (row locks against overbooking)
   audit/     audit log written in the same transaction as each change, paginated audit page
   stats/     group statistics: plain SQL aggregations through JdbcClient
-  realtime/  STOMP over WebSocket: authentication on CONNECT, authorization on SUBSCRIBE, live messages
-  notification/  emails (Thymeleaf, IT/EN), reminder job, Discord webhook
+  realtime/  STOMP over WebSocket: authentication on CONNECT, authorization on SUBSCRIBE, token expiry, live messages
+  notification/  emails (Thymeleaf, IT/EN), reminder and retry jobs, Discord webhook
+  demo/      demo data seeder (dev and demo profiles), Render demo configuration
   common/    error handling (ProblemDetail), rate limiting, validation, OpenAPI, cache, clock
 frontend/  Angular app
   core/      auth (service, interceptor, guards), HTTP error handling, i18n, layout, realtime (STOMP client)
   shared/    reusable validators, components (empty state, error state, confirm dialog) and page models
   features/  one folder per feature, lazy-loaded (auth, home, groups, games, events, stats, audit)
+e2e/       Playwright end-to-end tests, run against the whole stack
+infra/     Terraform for Azure (written and validated, never applied)
+deploy/    Render demo image (one container: Angular served by Spring Boot)
+.github/   CI workflows
 ```
 
 ## Security design
@@ -165,7 +251,7 @@ Services publish domain events (`EventChangedEvent`, `SignupPromotedEvent`, `Eve
 - **Reminders exactly once** (rule 7): a job runs every 5 minutes and emails the confirmed participants of published events starting within 24 hours. "Exactly once" is guaranteed by PostgreSQL, not by timing: each email first inserts a `notifications` row with `ON CONFLICT (user_id, dedup_key) DO NOTHING`, and only the run that inserted it sends the email. `NotificationIT` runs the job twice in parallel and checks there is one email; without the check it gets two.
 - **Failed emails are retried** (`FailedNotificationRetrier`, every 10 minutes, 3 attempts in total). A retry first claims the row with one atomic `UPDATE ... WHERE status = 'FAILED'`, so two runs never retry the same email twice (`FailedNotificationRetryIT` runs two in parallel). An email is retried only while it is still useful: the event is published and hasn't started, and the user still has a confirmed seat; otherwise it becomes `ABANDONED`. The trade-off: if the mail server accepted the message but the reply timed out, the retry is a duplicate; a rare duplicate before the event is better than a reminder that never arrives.
 - **Discord** (rule 9): if the group has a webhook, a message is posted when an event is published and when a sign-up leaves exactly one free seat. It runs in the background and every error is logged and swallowed, so Discord being down never breaks the main flow. Mentions are disabled (`allowed_mentions`), so an event called "@everyone" pings nobody, and the webhook URL (a secret) is never logged.
-- **Trade-offs**: the in-memory broker works for a single backend instance; with more, a broker relay (RabbitMQ) would be needed. An open WebSocket outlives its access token (see [Security design](#security-design)). Emails use one time zone for everyone (`APP_TIME_ZONE`), because users don't have their own yet.
+- **Trade-offs**: the in-memory broker works for a single backend instance; with more, a broker relay (RabbitMQ) would be needed. Emails use one time zone for everyone (`APP_TIME_ZONE`), because users don't have their own yet.
 
 ## Statistics and audit log
 
@@ -189,7 +275,7 @@ Everything that changes between environments comes from environment variables. S
 - [x] **3. Events and sign-ups**: slots, waitlist promotion, concurrency-safe sign-ups, recurrence, calendar
 - [x] **4. Real-time and notifications**: WebSocket updates, reminder emails, Discord webhooks
 - [x] **5. Dashboard and polish**: statistics, audit log page, i18n check, responsive layout, error states
-- [ ] **6. Quality and delivery**: Playwright e2e, GitHub Actions, Terraform for Azure, demo data
+- [x] **6. Quality and delivery**: Playwright e2e, GitHub Actions, Terraform for Azure, demo data seeder, backlog items (sign-ups of removed members, lock timeout, email retries, WebSocket token expiry)
 
 ### Future work
 

@@ -1,6 +1,7 @@
 # Render Blueprint for the free public demo: one web service (app + API + WebSocket) and a free
 # PostgreSQL database. Render dashboard > New > Blueprint > pick this repository.
-# The free database expires after 30 days; the real deployment (Azure + Terraform) is Milestone 6.
+# The free database expires after 30 days. Demo data is created at the first startup (DemoDataSeeder).
+# The production-like deployment is described in infra/ (Terraform for Azure).
 services:
   - type: web
     name: raidboard

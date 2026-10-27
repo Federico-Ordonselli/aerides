@@ -81,6 +81,15 @@ aerides:
     max-attempts: 3
     retry-interval: 10m
 
+  async:
+    # The pool of @Async methods (emails, Discord messages). Sized for a 512 MB instance: the tasks mostly wait on
+    # the network, and threads beyond core-size are added only once the queue is full
+    core-size: 2
+    max-size: 4
+    queue-capacity: 100
+    # Render allows about 30 s between SIGTERM and SIGKILL
+    await-termination: 20s
+
   realtime:
     # How often WebSocket sessions that outlived their access token are closed
     expired-session-sweep-interval: 1m

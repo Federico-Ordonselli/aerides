@@ -27,7 +27,7 @@ jobs:
           echo "JWT_SECRET=$(openssl rand -base64 48)" > .env
           docker compose up --detach --build --wait
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm

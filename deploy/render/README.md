@@ -49,5 +49,34 @@ CA store, which has Neon's root (ISRG Root X1, Let's Encrypt); without it pgjdbc
 - Client IP: add `LOGGING_LEVEL_DEV_ORDONSELLI_AERIDES_COMMON_WEB=DEBUG` in **Environment**, make one request, and the
   log line `... from <address>` should show your public IP (`curl https://ifconfig.me`). Then remove the variable.
 
+## Startup time
+
+The free instance has 0.1 CPU, so a cold start (after 15 idle minutes) is CPU-bound: the JVM spends it loading and
+verifying classes, and the slowest single step is Spring Data checking each `@Query` through Hibernate's HQL parser.
+With the plain fat jar Render logged `Started AeridesApplication in 257.693 seconds`.
+
+The runtime stage of the `Dockerfile` does three things. Measured locally with the same limits
+(`docker run --memory=512m --cpus=0.1`), from `docker run` to the first login + API call + page:
+
+| Image | First response |
+|-------|---------------:|
+| fat jar (before) | 156 s |
+| + `-XX:TieredStopAtLevel=1` (C1 compiler only) | 84 s |
+| + extracted jar layout (`-Djarmode=tools extract`) | 62 s |
+| + AppCDS archive from a training run | 43 s |
+
+What it costs: the image is ~150 MB bigger (the 118 MB archive, plus the jars stored unpacked), the build takes ~1 minute longer (the training run),
+and C1-only code has a lower peak speed, which a demo with a handful of users never reaches.
+"Started in" is not the whole wait: Render routes traffic only once readiness is UP, 10-20 s later.
+
+Tried and dropped:
+- `spring.main.lazy-initialization` and lazy JPA repositories: "Started in" goes down, but the first request then
+  creates the same beans, so the first response took the same 45 s.
+- Spring AOT: 53 s, and it freezes `@Conditional` decisions at build time (the active profile, Flyway on/off,
+  the role provisioner), so the same image could no longer adapt to its environment. AOT + CDS would also need a
+  database during the build.
+
+## Rotating passwords
+
 Rotating a password: change it in Render (and, for the owner, in Neon first) and redeploy. The application role's
 password is set again at every startup.

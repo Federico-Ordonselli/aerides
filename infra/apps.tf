@@ -90,8 +90,11 @@ resource "azurerm_container_app" "backend" {
       memory = "1Gi"
 
       env {
-        name  = "DB_URL"
-        value = "jdbc:postgresql://${azurerm_postgresql_flexible_server.main.fqdn}:5432/${azurerm_postgresql_flexible_server_database.raidboard.name}?sslmode=require"
+        name = "DB_URL"
+        # verify-full: encrypted AND the server certificate and host name are checked, so nobody in between
+        # can pose as the database. DefaultJavaSSLFactory trusts the JRE's CA store, which has the root of
+        # Azure's certificate chain (DigiCert Global Root G2): no certificate file to ship in the image.
+        value = "jdbc:postgresql://${azurerm_postgresql_flexible_server.main.fqdn}:5432/${azurerm_postgresql_flexible_server_database.raidboard.name}?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
       }
       env {
         name  = "DB_USERNAME"
@@ -220,6 +223,19 @@ resource "azurerm_container_app" "frontend" {
       env {
         name  = "BACKEND_HOST"
         value = local.backend_name
+      }
+      # nginx is not the edge here: the Container Apps ingress is, so $remote_addr would be the ingress for
+      # every user, and everybody would share one rate-limit bucket. nginx appends to the ingress's
+      # X-Forwarded-For instead, and Tomcat takes the right-most address that isn't a private network
+      # (server.tomcat.remoteip.internal-proxies default): the client IP the ingress wrote. Anything a
+      # client injects further left is ignored. HTTPS ends at the ingress, so its X-Forwarded-Proto is kept.
+      env {
+        name  = "FORWARDED_FOR"
+        value = "$proxy_add_x_forwarded_for"
+      }
+      env {
+        name  = "FORWARDED_PROTO"
+        value = "$http_x_forwarded_proto"
       }
     }
   }

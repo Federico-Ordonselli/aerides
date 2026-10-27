@@ -1,9 +1,14 @@
 # PostgreSQL 17, Flexible Server. Flyway creates the schema when the backend starts.
 #
-# Trade-off: the server has a public endpoint, open only to Azure services (the firewall rule below) and
-# with TLS required. Fully private access needs a virtual network: a delegated subnet for the server, a
-# private DNS zone, and a Container Apps environment inside the same network. That is the production
-# setup, left out to keep this configuration small.
+# Known gaps, both required before real production use:
+# - Network: the server has a public endpoint, and "Azure services" (the firewall rule below) means any
+#   Azure customer's resources, not only ours: the password and TLS are what protect it. Restricting it to
+#   our outbound IP isn't reliable either, because a Container Apps environment without a virtual network
+#   has no guaranteed outbound address. The fix is a virtual network: a delegated subnet for the server, a
+#   private DNS zone, the Container Apps environment in the same network, and public access disabled.
+# - Database user: the backend connects as the administrator. It should use a role that owns only the
+#   raidboard schema; creating it needs a PostgreSQL connection from Terraform (the postgresql provider),
+#   which only works once the network above is in place.
 
 resource "azurerm_postgresql_flexible_server" "main" {
   name                          = "${var.name_prefix}-db"

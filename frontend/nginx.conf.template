@@ -4,7 +4,8 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
-    # Template: BACKEND_URL and BACKEND_HOST are filled in when the container starts (see Dockerfile).
+    # Template: BACKEND_URL, BACKEND_HOST, FORWARDED_FOR and FORWARDED_PROTO are filled in when the container
+    # starts (see Dockerfile).
     # docker compose: http://backend:8080 and the browser's Host. Azure Container Apps: the backend app's
     # internal address, and its own host name, because the Container Apps ingress routes by Host header.
 
@@ -12,10 +13,12 @@ server {
     location /api/ {
         proxy_pass ${BACKEND_URL};
         proxy_set_header Host ${BACKEND_HOST};
-        # Overwrite, don't append: nginx is the entry point, so the client must not be able to
-        # inject its own X-Forwarded-For and pick a new IP (and a new rate-limit bucket) each request
-        proxy_set_header X-Forwarded-For $remote_addr;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        # Client IP for the rate limiter. docker compose (FORWARDED_FOR=$remote_addr): nginx is the entry point,
+        # so it overwrites the header and a client can't inject its own IP to get a new rate-limit bucket.
+        # Behind a managed ingress ($proxy_add_x_forwarded_for): nginx appends to the header written by the
+        # ingress, and the backend takes the right-most address that isn't a trusted private proxy.
+        proxy_set_header X-Forwarded-For ${FORWARDED_FOR};
+        proxy_set_header X-Forwarded-Proto ${FORWARDED_PROTO};
     }
 
     # WebSocket (STOMP): same proxy, plus the headers that switch the connection to the WebSocket protocol
@@ -25,8 +28,8 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_set_header Host ${BACKEND_HOST};
-        proxy_set_header X-Forwarded-For $remote_addr;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For ${FORWARDED_FOR};
+        proxy_set_header X-Forwarded-Proto ${FORWARDED_PROTO};
         # Open sockets are idle most of the time: don't let nginx close them after the default 60s
         proxy_read_timeout 1h;
     }

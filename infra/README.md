@@ -31,7 +31,11 @@ flowchart LR
 - **Exactly one backend replica**: the STOMP broker, the rate-limit buckets and the WebSocket token registry live in memory. Scaling out needs a broker relay (RabbitMQ) and a shared store (Redis) first; the frontend has no state and scales to two.
 - **Secrets** (`jwt_secret`, database password, API keys) are `sensitive` variables, stored as Container Apps secrets and passed as environment variables, the same names the app reads everywhere else (`.env.example`). Optional secrets are created only when set, because Container Apps refuses empty ones.
 - **Images by commit SHA**: the Docker workflow pushes `ghcr.io/<repo>-backend:sha-<commit>`; deploying an exact tag makes a deployment reproducible and a rollback a one-line change.
-- **Known gap: private networking.** PostgreSQL has a public endpoint, limited to Azure services and with TLS required. The production setup puts the server in a delegated subnet with a private DNS zone, and the Container Apps environment in the same virtual network. It is left out to keep the configuration short, and noted in `database.tf`.
+- **Client IP behind the ingress**: in compose nginx is the edge and overwrites `X-Forwarded-For`. Here the Container Apps ingress is the edge, so nginx *appends* to its header (`FORWARDED_FOR=$proxy_add_x_forwarded_for`), and Tomcat picks the right-most address that isn't a private network: the real client, not the ingress. Without this, every user would share one rate-limit bucket, and 20 failed logins by anyone would block login for everyone.
+- **TLS to the database is verified** (`sslmode=verify-full`): the certificate and the host name are checked against the JRE's CA store, not only encrypted.
+- **Known gaps, required before real production use** (noted in `database.tf`):
+  - **Private networking**: PostgreSQL has a public endpoint. The "Azure services" firewall rule admits any Azure customer's resources, so the password and TLS are what protect it. The fix: a delegated subnet for the server, a private DNS zone, the Container Apps environment in the same virtual network, public access disabled.
+  - **Least-privilege database user**: the backend connects as the administrator; it should use a role that owns only its schema. Creating that role from Terraform needs a connection to the server, which comes with the private network.
 
 ## Running it
 

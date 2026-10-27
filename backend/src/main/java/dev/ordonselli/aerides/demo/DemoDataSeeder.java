@@ -43,7 +43,7 @@ import dev.ordonselli.aerides.user.UserRepository;
  * statistics page some completed events to count.
  * <p>
  * It runs in one transaction (all or nothing) and only if the demo users don't exist yet, so restarting the
- * application never duplicates anything.
+ * application never duplicates anything. The accounts and what each one is for: docs/demo-accounts.md.
  */
 @Component
 @Profile({"dev", "demo"})
@@ -89,29 +89,36 @@ public class DemoDataSeeder implements ApplicationRunner {
             return;
         }
         transactionTemplate.executeWithoutResult(status -> seed());
-        log.info("Demo data created: {}, marco@example.com, luca@example.com / password {}", OWNER_EMAIL, PASSWORD);
+        log.info("Demo data created, password {} for every account: see docs/demo-accounts.md", PASSWORD);
     }
 
     private void seed() {
         Long giulia = createUser(OWNER_EMAIL, "Giulia", "it");
         Long marco = createUser("marco@example.com", "Marco", "it");
         Long luca = createUser("luca@example.com", "Luca", "en");
+        Long sara = createUser("sara@example.com", "Sara", "en");
+        // In no group: access denied everywhere, until they join with an invite code
+        createUser("paolo@example.com", "Paolo", "it");
+        // Owner of another group: tenant isolation in both directions
+        Long elena = createUser("elena@example.com", "Elena", "en");
 
         GroupDetailResponse group = groupService.create(giulia,
                 new CreateGroupRequest("Gilda dei Draghi", "Raid del giovedì e serate di gioco da tavolo."));
         Long groupId = group.id();
         groupService.join(marco, new JoinGroupRequest(group.inviteCode()));
         groupService.join(luca, new JoinGroupRequest(group.inviteCode()));
+        groupService.join(sara, new JoinGroupRequest(group.inviteCode()));
         membershipService.changeRole(groupId, giulia, marco, MembershipRole.OFFICER);
 
         seedHistory(groupId, giulia, marco, luca);
 
-        // Full tank slot: Giulia confirmed, Luca waitlisted. Withdraw as Giulia and Luca is promoted live.
+        // Every seat taken and Luca waitlisted for Tank. Withdraw as Giulia and Luca is promoted live.
         EventDetailResponse raid = published(groupId, giulia, event("Raid: Vault of Glass", "Portate le pozioni.",
-                atRome(3, 21), false, slot("Tank", 1), slot("Healer", 2), slot("DPS", 3)));
+                atRome(3, 21), false, slot("Tank", 1), slot("Healer", 1), slot("DPS", 1)));
         signUp(groupId, raid, 0, giulia);
-        signUp(groupId, raid, 0, luca);
         signUp(groupId, raid, 1, marco);
+        signUp(groupId, raid, 2, sara);
+        signUp(groupId, raid, 0, luca);
 
         // Needs approval: Luca's request waits for an officer
         EventDetailResponse boardGames = published(groupId, marco, event("Serata giochi da tavolo", null,
@@ -121,6 +128,12 @@ public class DemoDataSeeder implements ApplicationRunner {
         // A draft: officers and the owner see it, Luca doesn't
         eventService.create(groupId, marco, event("Raid: Crota's End (bozza)", null, atRome(10, 21), false,
                 slot("Tank", 2), slot("DPS", 4)));
+
+        GroupDetailResponse otherGroup = groupService.create(elena,
+                new CreateGroupRequest("Night Owls", "Late-night tabletop campaigns."));
+        EventDetailResponse campaign = published(otherGroup.id(), elena, event("Gloomhaven: scenario 12", null,
+                atRome(5, 22), false, slot("Player", 4)));
+        signUp(otherGroup.id(), campaign, 0, elena);
     }
 
     /**

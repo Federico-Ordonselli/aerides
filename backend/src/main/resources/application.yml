@@ -4,9 +4,11 @@ spring:
   application:
     name: aerides
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/aerides}
-    username: ${DB_USERNAME:aerides}
-    password: ${DB_PASSWORD:aerides}
+    # No defaults: without them the application refuses to start (DatabaseConfigCheck). The localhost
+    # defaults for local development are in application-dev.yml.
+    url: ${DB_URL:}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
     hikari:
       # PostgreSQL gives up waiting for a row lock after this long. A stuck transaction then makes the
       # requests queued behind it fail fast with a "try again" 503, instead of holding their threads forever.

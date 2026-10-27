@@ -1,4 +1,11 @@
 # Local development only (activated with SPRING_PROFILES_ACTIVE=dev).
+spring:
+  datasource:
+    # The docker compose database, published on localhost:5432
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/aerides}
+    username: ${DB_USERNAME:aerides}
+    password: ${DB_PASSWORD:aerides}
+
 aerides:
   security:
     jwt-secret: dev-only-secret-change-me-0123456789abcdef

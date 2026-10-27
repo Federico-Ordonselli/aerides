@@ -63,7 +63,7 @@ class DemoDataSeederIT extends AbstractIntegrationTest {
                 .single(); // exactly one group: the second run did nothing
         assertThat(jdbcClient.sql("select role from memberships where group_id = :g order by role")
                 .param("g", groupId).query(String.class).list())
-                .containsExactly("MEMBER", "OFFICER", "OWNER");
+                .containsExactly("MEMBER", "MEMBER", "OFFICER", "OWNER");
         List<Map<String, Object>> statuses = jdbcClient.sql("""
                         select status, count(*) as total from events where group_id = :g group by status order by status
                         """)
@@ -76,6 +76,30 @@ class DemoDataSeederIT extends AbstractIntegrationTest {
                         where u.email = 'luca@example.com' and e.status = 'PUBLISHED' order by e.starts_at
                         """).query(String.class).list())
                 .containsExactly("WAITLISTED", "PENDING");
+        // Every seat of the raid is taken, and one more person waits
+        assertThat(jdbcClient.sql("""
+                        select s.status, count(*) from signups s join events e on e.id = s.event_id
+                        where e.title = 'Raid: Vault of Glass' group by s.status order by s.status
+                        """).query((rs, row) -> rs.getString(1) + "=" + rs.getLong(2)).list())
+                .containsExactly("CONFIRMED=3", "WAITLISTED=1");
+        assertThat(jdbcClient.sql("""
+                        select sum(es.capacity) from event_slots es join events e on e.id = es.event_id
+                        where e.title = 'Raid: Vault of Glass'
+                        """).query(Long.class).single()).isEqualTo(3);
+        // Paolo belongs to no group; Elena alone owns another group
+        assertThat(jdbcClient.sql("""
+                        select count(*) from memberships m join users u on u.id = m.user_id where u.email = 'paolo@example.com'
+                        """).query(Long.class).single()).isZero();
+        assertThat(jdbcClient.sql("""
+                        select u.email || ':' || m.role from memberships m join users u on u.id = m.user_id
+                        join groups g on g.id = m.group_id where g.name = 'Night Owls'
+                        """).query(String.class).list())
+                .containsExactly("elena@example.com:OWNER");
+        assertThat(jdbcClient.sql("select locale from users where email in "
+                        + "('giulia@example.com','marco@example.com','luca@example.com','sara@example.com',"
+                        + "'paolo@example.com','elena@example.com') group by locale order by locale")
+                .query(String.class).list())
+                .containsExactly("en", "it");
         // ...and so did the audit log
         assertThat(jdbcClient.sql("select count(*) from audit_entries where group_id = :g")
                 .param("g", groupId).query(Long.class).single()).isGreaterThan(10);

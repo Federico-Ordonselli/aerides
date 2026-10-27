@@ -1,2 +1,5 @@
+org.springframework.boot.EnvironmentPostProcessor=\
+dev.ordonselli.aerides.common.config.DatabaseConfigCheck
 org.springframework.boot.diagnostics.FailureAnalyzer=\
-dev.ordonselli.aerides.auth.InvalidJwtSecretFailureAnalyzer
+dev.ordonselli.aerides.auth.InvalidJwtSecretFailureAnalyzer,\
+dev.ordonselli.aerides.common.config.InvalidDatabaseConfigFailureAnalyzer

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aerides: waking up the demo</title>
+  <meta name="description" content="Aerides, a scheduler for gaming groups. This page wakes up the free demo and opens it when it's ready.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%237c3aed' d='M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 16H5V9h14v11Zm-9.4-2.5L6.1 14l1.4-1.4 2.1 2.1 4.9-4.9 1.4 1.4-6.3 6.3Z'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <script src="wake.js" defer></script>
+</head>
+<body>
+  <header class="top">
+    <span class="brand">Aerides</span>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="it" aria-pressed="false">IT</button>
+      <button type="button" data-lang="en" aria-pressed="true">EN</button>
+    </div>
+  </header>
+
+  <main>
+    <h1 data-i18n="tagline">Named after the Tower of the Winds in Athens: the place to know when to gather.</h1>
+
+    <section class="status" aria-labelledby="status-title">
+      <h2 id="status-title" class="visually-hidden" data-i18n="statusTitle">Demo status</h2>
+      <p id="message" class="message" role="status" data-state="waking">Waking up the demo, it usually takes about 2 minutes.</p>
+      <progress id="progress" max="120" value="0" aria-labelledby="message"></progress>
+      <p class="elapsed"><span data-i18n="elapsed">Elapsed</span>: <span id="elapsed">0:00</span></p>
+      <div class="actions">
+        <a id="open" class="button primary" href="https://aerides.onrender.com/" hidden data-i18n="open">Open the demo</a>
+        <button id="stay" class="button" type="button" hidden data-i18n="stay">Stay on this page</button>
+        <button id="retry" class="button primary" type="button" hidden data-i18n="retry">Try again</button>
+      </div>
+      <p class="why" data-i18n="why">The demo runs on a free instance that sleeps after 15 idle minutes. This page wakes it up and opens it when it's ready.</p>
+      <noscript><p><a href="https://aerides.onrender.com/">Open the demo directly</a></p></noscript>
+    </section>
+
+    <section aria-labelledby="about-title">
+      <h2 id="about-title" data-i18n="aboutTitle">What it is</h2>
+      <p data-i18n="about1">Aerides is a multi-tenant web app where gaming groups (guilds, clans, tabletop tables) organize their sessions: events with role-based slots, sign-ups, approvals and automatic waitlists.</p>
+      <p data-i18n="about2">When a seat frees up, the first person on the waitlist is promoted and sees it live, without reloading. Groups get email and Discord reminders, an audit log and attendance statistics.</p>
+      <p data-i18n="about3">Built with Java 21, Spring Boot 4, PostgreSQL and Angular, tested with Testcontainers and Playwright, shipped with Docker and GitHub Actions.</p>
+    </section>
+
+    <section aria-labelledby="try-title">
+      <h2 id="try-title" data-i18n="tryTitle">Try it</h2>
+      <p><span data-i18n="login">Log in as</span> <code>giulia@example.com</code> / <code>aerides-demo</code> <span data-i18n="owner">(owner of a group).</span></p>
+      <p><a href="https://github.com/Federico-Ordonselli/aerides/blob/main/docs/demo-accounts.md" data-i18n="accounts">All six demo accounts and what each one is for</a></p>
+      <ul class="links">
+        <li><a href="https://github.com/Federico-Ordonselli/aerides" data-i18n="repo">Source code on GitHub</a></li>
+        <li><a href="https://aerides.onrender.com/" data-i18n="direct">Open the app directly</a></li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="shots-title">
+      <h2 id="shots-title" data-i18n="shotsTitle">Screenshots</h2>
+      <figure>
+        <img src="img/raid.webp" width="1280" height="600" loading="lazy" decoding="async"
+             alt="A full raid: Tank, Healer and DPS seats taken, and one person on the Tank waitlist" data-i18n-alt="raidAlt">
+        <figcaption data-i18n="raidCaption">A full raid with its waitlist</figcaption>
+      </figure>
+      <figure>
+        <img src="img/events.webp" width="1280" height="545" loading="lazy" decoding="async"
+             alt="The events of a group in a table, with date, title, state and seats taken" data-i18n-alt="eventsAlt">
+        <figcaption data-i18n="eventsCaption">The events of a group</figcaption>
+      </figure>
+      <figure>
+        <img src="img/stats.webp" width="1265" height="910" loading="lazy" decoding="async"
+             alt="Group statistics: events per month, the most unfilled roles and attendance per member" data-i18n-alt="statsAlt">
+        <figcaption data-i18n="statsCaption">Group statistics</figcaption>
+      </figure>
+    </section>
+  </main>
+
+  <footer>
+    <a href="https://github.com/Federico-Ordonselli">Federico Ordonselli</a>
+  </footer>
+</body>
+</html>

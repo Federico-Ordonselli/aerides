@@ -1,0 +1,20 @@
+# Weekly update pull requests. Third-party actions are pinned to a commit SHA (a tag can be moved to other
+# code, a SHA can't); Dependabot keeps those SHAs current and the version comment next to them.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: maven
+    directory: /backend
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /e2e
+    schedule:
+      interval: weekly

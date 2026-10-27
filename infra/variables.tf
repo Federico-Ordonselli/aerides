@@ -46,13 +46,24 @@ variable "registry_password" {
 }
 
 variable "postgres_admin_password" {
-  description = "Password of the PostgreSQL administrator, also used by the backend."
+  description = "Password of the PostgreSQL administrator, who owns the schema: used only by Flyway for the migrations."
   type        = string
   sensitive   = true
 
   validation {
     condition     = length(var.postgres_admin_password) >= 16
     error_message = "Use at least 16 characters."
+  }
+}
+
+variable "postgres_app_password" {
+  description = "Password of the backend's own database role (rows only, no DDL). Changing it and restarting rotates it."
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = length(var.postgres_app_password) >= 16 && var.postgres_app_password != var.postgres_admin_password
+    error_message = "Use at least 16 characters, and not the administrator's password."
   }
 }
 

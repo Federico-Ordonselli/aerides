@@ -6,9 +6,9 @@
 #   our outbound IP isn't reliable either, because a Container Apps environment without a virtual network
 #   has no guaranteed outbound address. The fix is a virtual network: a delegated subnet for the server, a
 #   private DNS zone, the Container Apps environment in the same network, and public access disabled.
-# - Database user: the backend connects as the administrator. It should use a role that owns only the
-#   raidboard schema; creating it needs a PostgreSQL connection from Terraform (the postgresql provider),
-#   which only works once the network above is in place.
+# - Migration credentials: the backend connects as a role that can only read and write rows (see apps.tf),
+#   but the container still holds the administrator's password, because Flyway migrates at startup. Running
+#   the migrations in a separate Container Apps job would keep it out of the application.
 
 resource "azurerm_postgresql_flexible_server" "main" {
   name                          = "${var.name_prefix}-db"

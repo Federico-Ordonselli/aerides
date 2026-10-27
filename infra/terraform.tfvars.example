@@ -8,6 +8,8 @@ image_tag = "latest"
 
 # openssl rand -base64 32
 postgres_admin_password = "change-me-change-me"
+# openssl rand -base64 32, a different one
+postgres_app_password = "change-me-too-change-me-too"
 # openssl rand -base64 48
 jwt_secret = "change-me-change-me-change-me-change-me"
 

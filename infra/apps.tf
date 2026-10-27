@@ -8,6 +8,10 @@ locals {
   frontend_name = "${var.name_prefix}-frontend"
   frontend_url  = "https://${azurerm_container_app.frontend.ingress[0].fqdn}"
 
+  # The backend's own database role: rows only, no DDL. Flyway creates it, as the administrator, at startup
+  # (AppRoleProvisioner), so Terraform needs no connection to the database.
+  app_db_role = "raidboard_app"
+
   # Container Apps refuses empty secrets, so the optional ones exist only when set. for_each can't depend
   # on a sensitive value: nonsensitive() reveals only "set or not", never the value itself.
   has_rawg_api_key  = nonsensitive(var.rawg_api_key != "")
@@ -31,6 +35,10 @@ resource "azurerm_container_app" "backend" {
   secret {
     name  = "db-password"
     value = var.postgres_admin_password
+  }
+  secret {
+    name  = "db-app-password"
+    value = var.postgres_app_password
   }
   secret {
     name  = "jwt-secret"
@@ -96,12 +104,22 @@ resource "azurerm_container_app" "backend" {
         # Azure's certificate chain (DigiCert Global Root G2): no certificate file to ship in the image.
         value = "jdbc:postgresql://${azurerm_postgresql_flexible_server.main.fqdn}:5432/${azurerm_postgresql_flexible_server_database.raidboard.name}?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
       }
+      # Two database users: the connection pool uses the application role, Flyway the administrator, who
+      # owns the schema. A separate Flyway user is also what turns on AppRoleProvisioner.
       env {
         name  = "DB_USERNAME"
-        value = azurerm_postgresql_flexible_server.main.administrator_login
+        value = local.app_db_role
       }
       env {
         name        = "DB_PASSWORD"
+        secret_name = "db-app-password"
+      }
+      env {
+        name  = "SPRING_FLYWAY_USER"
+        value = azurerm_postgresql_flexible_server.main.administrator_login
+      }
+      env {
+        name        = "SPRING_FLYWAY_PASSWORD"
         secret_name = "db-password"
       }
       env {

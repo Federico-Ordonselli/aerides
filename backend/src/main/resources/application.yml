@@ -18,6 +18,8 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+    # One user for both by default. With SPRING_FLYWAY_USER/SPRING_FLYWAY_PASSWORD (the schema owner) the
+    # migrations use that user, and DB_USERNAME becomes a rows-only role that Flyway sets up (AppRoleProvisioner)
   data:
     web:
       pageable:

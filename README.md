@@ -283,6 +283,7 @@ Improvements that are not bugs, deliberately left out. Milestone 6 closed the ot
 
 - **"Recognized device" cookie**: after a successful login, set a long-lived signed cookie. Logins from a recognized device skip the per-account rate limit, so an attacker who hits it can't lock the real user out. Today the lockout lasts at most 15 minutes (see [Security design](#security-design)). Left out because authentication was frozen after Milestone 1's reviews.
 - **Shared rate-limit store**: move Bucket4j buckets to Redis (or to the gateway), so limits hold across instances and can't be reset by evicting entries from the in-memory cache. Needed only with more than one backend instance, together with a broker relay for WebSocket.
+- **Azure: private network and a migration job**: the Terraform deployment (`infra/`) is not production-ready on two points. PostgreSQL has a public endpoint, which needs a virtual network to close. Flyway runs inside the backend, so the container holds the schema owner's password even though the connection pool uses a rows-only role; the migrations belong in a separate Container Apps job. Details in [infra/README.md](infra/README.md).
 - **Edit a whole weekly series**: today editing and cancelling act on one occurrence at a time.
 - **Per-user time zone**: emails write dates in `APP_TIME_ZONE`; users could store their own zone, like their language.
 - **Real attendance**: let officers mark no-shows when completing an event; attendance would then count people who actually came, not confirmed seats.

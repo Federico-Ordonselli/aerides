@@ -59,6 +59,12 @@ class WebSocketIT extends AbstractIntegrationTest {
     @Autowired
     private SimpUserRegistry userRegistry;
 
+    @Autowired
+    private TokenExpiryRegistry tokenExpiryRegistry;
+
+    @Autowired
+    private ExpiredSessionSweeper expiredSessionSweeper;
+
     private WebSocketStompClient stompClient;
     private TestUser owner;
     private TestUser member;
@@ -202,6 +208,31 @@ class WebSocketIT extends AbstractIntegrationTest {
 
         assertThat(nextError()).isEqualTo(RevokedAccessListener.ACCESS_REVOKED);
         await().atMost(Duration.ofSeconds(TIMEOUT_SECONDS)).until(() -> brokerSubscriptionCount(draftTopic) == 0);
+    }
+
+    @Test
+    void aSubscribeAfterTheTokenExpiredIsRejected() throws Exception {
+        StompSession session = connect(member.accessToken());
+        // Instead of waiting 15 minutes: the token of this session expired a second ago
+        tokenExpiryRegistry.register(sessionIdOf(member), Instant.now().minusSeconds(1));
+
+        subscribe(session, "/user/queue/notifications");
+
+        assertThat(nextError()).isEqualTo(StompAuthInterceptor.AUTHENTICATION_REQUIRED);
+        await().atMost(Duration.ofSeconds(TIMEOUT_SECONDS)).until(() -> !session.isConnected());
+    }
+
+    @Test
+    void theSweepClosesSessionsWhoseTokenExpired() throws Exception {
+        StompSession expired = connect(member.accessToken());
+        StompSession valid = connect(owner.accessToken());
+        tokenExpiryRegistry.register(sessionIdOf(member), Instant.now().minusSeconds(1));
+
+        expiredSessionSweeper.closeExpiredSessions();
+
+        assertThat(nextError()).isEqualTo(StompAuthInterceptor.AUTHENTICATION_REQUIRED);
+        await().atMost(Duration.ofSeconds(TIMEOUT_SECONDS)).until(() -> !expired.isConnected());
+        assertThat(valid.isConnected()).isTrue();
     }
 
     private StompSession connect(String accessToken) throws Exception {

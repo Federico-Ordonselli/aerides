@@ -21,6 +21,10 @@ public interface EventSlotRepository extends JpaRepository<EventSlot, Long> {
     @Query("select s from EventSlot s where s.id = :id and s.event.id = :eventId")
     Optional<EventSlot> findByIdAndEventIdForUpdate(@Param("id") Long id, @Param("eventId") Long eventId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select s from EventSlot s join fetch s.event where s.id = :id")
+    Optional<EventSlot> findByIdForUpdate(@Param("id") Long id);
+
     /** Locks all the slots of an event, always in id order: two transactions locking in the same order can't deadlock. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from EventSlot s where s.event.id = :eventId order by s.id")

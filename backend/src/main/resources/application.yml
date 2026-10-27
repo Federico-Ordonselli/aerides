@@ -7,6 +7,10 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/raidboard}
     username: ${DB_USERNAME:raidboard}
     password: ${DB_PASSWORD:raidboard}
+    hikari:
+      # PostgreSQL gives up waiting for a row lock after this long. A stuck transaction then makes the
+      # requests queued behind it fail fast with a "try again" 503, instead of holding their threads forever.
+      connection-init-sql: SET lock_timeout = '${DB_LOCK_TIMEOUT:5s}'
   jpa:
     # The schema is owned by Flyway; Hibernate only checks that entities match it
     hibernate:
@@ -63,6 +67,13 @@ raidboard:
     time-zone: ${APP_TIME_ZONE:Europe/Rome}
     reminder-lead-time: 24h
     reminder-interval: ${REMINDER_INTERVAL:5m}
+    # A failed email (mail server down) is tried again every retry-interval, up to max-attempts in total
+    max-attempts: 3
+    retry-interval: 10m
+
+  realtime:
+    # How often WebSocket sessions that outlived their access token are closed
+    expired-session-sweep-interval: 1m
 
   discord:
     connect-timeout: 2s

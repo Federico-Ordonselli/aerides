@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.ResultActions;
 
 import dev.ordonselli.raidboard.audit.AuditAction;
@@ -36,6 +38,9 @@ class EventIT extends AbstractIntegrationTest {
 
     @Autowired
     private AuditEntryRepository auditEntryRepository;
+
+    @Autowired
+    private JdbcClient jdbcClient;
 
     private TestUser owner;
     private TestUser alice;
@@ -112,6 +117,44 @@ class EventIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.slots[0].confirmed[0].displayName").value("Bob"))
                 .andExpect(jsonPath("$.slots[0].waitlisted", hasSize(0)))
                 .andExpect(jsonPath("$.mySignup.status").value("CONFIRMED"));
+    }
+
+    @Test
+    void aRemovedMemberGivesTheirSeatToTheWaitlist() throws Exception {
+        // Deadline 24 h: alice could not withdraw by herself any more, but removal still frees the seat
+        String event = createPublishedEvent(owner, group,
+                eventJson(Instant.now().plus(Duration.ofHours(2)), false, 24, "Healer", 1));
+        Long eventId = idOf(event);
+        signUp(alice, eventId, slotId(event)).andExpect(jsonPath("$.status").value("CONFIRMED"));
+        signUp(bob, eventId, slotId(event)).andExpect(jsonPath("$.status").value("WAITLISTED"));
+
+        mockMvc.perform(delete("/api/groups/{g}/members/{u}", group.id(), alice.id()).with(as(owner)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/groups/{g}/events/{e}", group.id(), eventId).with(as(bob)))
+                .andExpect(jsonPath("$.slots[0].confirmed", hasSize(1)))
+                .andExpect(jsonPath("$.slots[0].confirmed[0].displayName").value("Bob"))
+                .andExpect(jsonPath("$.mySignup.status").value("CONFIRMED"));
+        assertThat(signupStatus(eventId, alice)).isEqualTo("WITHDRAWN");
+    }
+
+    @Test
+    void leavingTheGroupWithdrawsUpcomingSignupsButKeepsStartedEvents() throws Exception {
+        String upcoming = createPublishedEvent(owner, group, eventJson(NEXT_WEEK, false, 0, "Tank", 2));
+        String started = createPublishedEvent(owner, group, eventJson(NEXT_WEEK, false, 0, "Tank", 2));
+        signUp(alice, idOf(upcoming), slotId(upcoming)).andExpect(status().isCreated());
+        signUp(alice, idOf(started), slotId(started)).andExpect(status().isCreated());
+        // The API refuses events in the past: move this one to an hour ago, like StatsIT does
+        jdbcClient.sql("update events set starts_at = :startsAt where id = :id")
+                .param("startsAt", Instant.now().minus(Duration.ofHours(1)).atOffset(ZoneOffset.UTC))
+                .param("id", idOf(started))
+                .update();
+
+        mockMvc.perform(delete("/api/groups/{g}/members/me", group.id()).with(as(alice)))
+                .andExpect(status().isNoContent());
+
+        assertThat(signupStatus(idOf(upcoming), alice)).isEqualTo("WITHDRAWN");
+        assertThat(signupStatus(idOf(started), alice)).isEqualTo("CONFIRMED"); // attendance history
     }
 
     @Test
@@ -259,6 +302,15 @@ class EventIT extends AbstractIntegrationTest {
             throws Exception {
         return mockMvc.perform(post("/api/groups/{g}/events/{e}/signups/{s}/approve", group.id(), eventId, signupId)
                 .with(as(owner)));
+    }
+
+    /** Read with SQL: a user who left the group can't see the event through the API any more. */
+    private String signupStatus(Long eventId, TestUser user) {
+        return jdbcClient.sql("select status from signups where event_id = :eventId and user_id = :userId")
+                .param("eventId", eventId)
+                .param("userId", user.id())
+                .query(String.class)
+                .single();
     }
 
     private static Long slotId(String eventJson) {

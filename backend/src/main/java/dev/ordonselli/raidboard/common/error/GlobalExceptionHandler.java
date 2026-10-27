@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -84,6 +85,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ProblemDetail handleOptimisticLock(OptimisticLockingFailureException ex) {
         return problem(HttpStatus.CONFLICT, "Concurrent modification",
                 "The resource was modified by someone else, reload it and try again");
+    }
+
+    /**
+     * A row lock was not granted within {@code lock_timeout}, or PostgreSQL broke a deadlock. The transaction
+     * was rolled back, so nothing changed and the client can safely try again.
+     */
+    @ExceptionHandler(PessimisticLockingFailureException.class)
+    public ResponseEntity<ProblemDetail> handlePessimisticLock(PessimisticLockingFailureException ex) {
+        log.warn("Row lock not acquired: {}", ex.getMostSpecificCause().getMessage());
+        ProblemDetail body = problem(HttpStatus.SERVICE_UNAVAILABLE, "Busy",
+                "Too many changes at the same time, try again in a moment");
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header(HttpHeaders.RETRY_AFTER, "1")
+                .body(body);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

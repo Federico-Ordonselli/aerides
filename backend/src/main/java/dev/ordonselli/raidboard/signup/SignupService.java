@@ -1,11 +1,14 @@
 package dev.ordonselli.raidboard.signup;
 
 import java.time.Clock;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import dev.ordonselli.raidboard.audit.AuditAction;
@@ -22,6 +25,7 @@ import dev.ordonselli.raidboard.event.EventRepository;
 import dev.ordonselli.raidboard.event.EventSlot;
 import dev.ordonselli.raidboard.event.EventSlotRepository;
 import dev.ordonselli.raidboard.event.EventStatus;
+import dev.ordonselli.raidboard.group.MembershipEndedEvent;
 import dev.ordonselli.raidboard.user.UserRepository;
 
 /**
@@ -116,6 +120,37 @@ public class SignupService {
             waitlistService.promote(slot);
         }
         publishSignupsChanged(event, SignupStatus.WITHDRAWN);
+    }
+
+    /**
+     * A user who left the group or was removed gives up their sign-ups on its published events that haven't
+     * started; their seats go to the waitlist. A plain {@code @EventListener} runs synchronously, inside the
+     * transaction that deletes the membership, so the membership and its sign-ups go away together.
+     * <p>
+     * The withdrawal deadline doesn't apply: someone who is no longer a member can't keep a seat.
+     * Sign-ups on events that have started or are completed stay, because they are attendance history.
+     */
+    @EventListener
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void withdrawFromUpcomingEvents(MembershipEndedEvent membershipEnded) {
+        Long userId = membershipEnded.userId();
+        List<Long> slotIds = signupRepository.findSlotIdsOfUpcomingSignups(membershipEnded.groupId(), userId,
+                SignupStatus.ACTIVE, EventStatus.PUBLISHED, clock.instant());
+        // In id order, like every multi-slot lock: two transactions locking in the same order can't deadlock
+        for (Long slotId : slotIds) {
+            EventSlot slot = slotRepository.findByIdForUpdate(slotId)
+                    .orElseThrow(() -> new NotFoundException("Slot not found"));
+            // Loaded after the lock, so its status is current
+            signupRepository.findBySlotIdAndUserIdAndStatusIn(slotId, userId, SignupStatus.ACTIVE)
+                    .ifPresent(signup -> {
+                        boolean hadSeat = signup.getStatus() == SignupStatus.CONFIRMED;
+                        signup.setStatus(SignupStatus.WITHDRAWN);
+                        if (hadSeat) {
+                            waitlistService.promote(slot);
+                        }
+                        publishSignupsChanged(slot.getEvent(), SignupStatus.WITHDRAWN);
+                    });
+        }
     }
 
     /** Approves a pending sign-up: it takes a seat if there is one, otherwise it joins the waitlist. */

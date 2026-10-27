@@ -1,3 +1,9 @@
+spring:
+  datasource:
+    hikari:
+      # Shorter than in production, so SignupLockTimeoutIT doesn't wait 5 seconds
+      connection-init-sql: SET lock_timeout = '2s'
+
 raidboard:
   security:
     jwt-secret: test-secret-for-integration-tests-0123456789

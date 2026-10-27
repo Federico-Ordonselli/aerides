@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
@@ -33,6 +34,7 @@ class NotificationServiceTest {
 
     private static final Instant NOW = Instant.parse("2027-01-10T12:00:00Z");
     private static final String KEY = "reminder:event:10";
+    private static final int MAX_ATTEMPTS = 3;
 
     @Mock
     private NotificationRepository notificationRepository;
@@ -48,8 +50,10 @@ class NotificationServiceTest {
 
     @BeforeEach
     void setUp() {
+        NotificationProperties properties = new NotificationProperties("http://localhost:4200", "noreply@example.com",
+                ZoneOffset.UTC, Duration.ofHours(24), MAX_ATTEMPTS);
         service = new NotificationService(notificationRepository, emailComposer, emailSender, JsonMapper.builder().build(),
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                properties, Clock.fixed(NOW, ZoneOffset.UTC));
         user = new User("mario@example.com", "hash", "Mario", "it");
         ReflectionTestUtils.setField(user, "id", 5L);
         Group group = new Group("Gilda", "gilda", null, "ABCDEFGHJK");
@@ -92,6 +96,37 @@ class NotificationServiceTest {
         assertThat(sent).isFalse();
         verify(notificationRepository).updateStatus(42L, NotificationStatus.FAILED, null);
         verify(notificationRepository, never()).updateStatus(any(), eq(NotificationStatus.SENT), any());
+    }
+
+    @Test
+    void aRetryClaimsTheFailedRowBeforeSending() {
+        Notification failed = notification(42L, NotificationType.EVENT_REMINDER);
+        when(notificationRepository.claimForRetry(42L, MAX_ATTEMPTS)).thenReturn(1);
+        when(emailComposer.compose(NotificationType.EVENT_REMINDER, user, event)).thenReturn(email);
+
+        boolean sent = service.retry(failed, user, event);
+
+        assertThat(sent).isTrue();
+        verify(emailSender).send(email);
+        verify(notificationRepository).updateStatus(42L, NotificationStatus.SENT, NOW);
+    }
+
+    @Test
+    void aRetryAlreadyClaimedByAnotherRunSendsNothing() {
+        Notification failed = notification(42L, NotificationType.EVENT_REMINDER);
+        when(notificationRepository.claimForRetry(42L, MAX_ATTEMPTS)).thenReturn(0);
+
+        boolean sent = service.retry(failed, user, event);
+
+        assertThat(sent).isFalse();
+        verifyNoInteractions(emailComposer, emailSender);
+    }
+
+    private static Notification notification(Long id, NotificationType type) {
+        Notification notification = new Notification();
+        ReflectionTestUtils.setField(notification, "id", id);
+        ReflectionTestUtils.setField(notification, "type", type);
+        return notification;
     }
 
     private void givenClaimed() {

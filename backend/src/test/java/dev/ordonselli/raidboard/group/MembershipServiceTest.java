@@ -74,26 +74,30 @@ class MembershipServiceTest {
         membershipService.changeRole(GROUP_ID, OWNER_ID, MEMBER_ID, MembershipRole.MEMBER);
 
         verify(eventPublisher).publishEvent(new GroupAccessRevokedEvent(GROUP_ID, MEMBER_ID));
+        // Still a member: their sign-ups stay
+        verify(eventPublisher, never()).publishEvent(new MembershipEndedEvent(GROUP_ID, MEMBER_ID));
     }
 
     @Test
-    void removingAMemberRevokesTheirAccess() {
+    void removingAMemberEndsTheMembershipAndRevokesTheirAccess() {
         Membership member = membership(MEMBER_ID, MembershipRole.MEMBER);
         when(membershipRepository.findByGroupIdAndUserId(GROUP_ID, MEMBER_ID)).thenReturn(Optional.of(member));
 
         membershipService.removeMember(GROUP_ID, OWNER_ID, MEMBER_ID);
 
         verify(membershipRepository).delete(member);
+        verify(eventPublisher).publishEvent(new MembershipEndedEvent(GROUP_ID, MEMBER_ID));
         verify(eventPublisher).publishEvent(new GroupAccessRevokedEvent(GROUP_ID, MEMBER_ID));
     }
 
     @Test
-    void leavingRevokesAccess() {
+    void leavingEndsTheMembershipAndRevokesAccess() {
         when(membershipRepository.findByGroupIdAndUserId(GROUP_ID, MEMBER_ID))
                 .thenReturn(Optional.of(membership(MEMBER_ID, MembershipRole.MEMBER)));
 
         membershipService.leave(GROUP_ID, MEMBER_ID);
 
+        verify(eventPublisher).publishEvent(new MembershipEndedEvent(GROUP_ID, MEMBER_ID));
         verify(eventPublisher).publishEvent(new GroupAccessRevokedEvent(GROUP_ID, MEMBER_ID));
     }
 

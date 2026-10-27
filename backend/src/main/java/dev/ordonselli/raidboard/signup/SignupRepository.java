@@ -44,6 +44,19 @@ public interface SignupRepository extends JpaRepository<Signup, Long> {
     Optional<Long> findSlotIdByEventIdAndUserIdAndStatusIn(@Param("eventId") Long eventId,
             @Param("userId") Long userId, @Param("statuses") Collection<SignupStatus> statuses);
 
+    /** Slots where the user has an active sign-up on a published event of the group that hasn't started, in id order. */
+    @Query("""
+            select s.slot.id from Signup s
+            where s.event.group.id = :groupId and s.user.id = :userId and s.status in :statuses
+              and s.event.status = :eventStatus and s.event.startsAt > :now
+            order by s.slot.id
+            """)
+    List<Long> findSlotIdsOfUpcomingSignups(@Param("groupId") Long groupId, @Param("userId") Long userId,
+            @Param("statuses") Collection<SignupStatus> statuses, @Param("eventStatus") EventStatus eventStatus,
+            @Param("now") Instant now);
+
+    Optional<Signup> findBySlotIdAndUserIdAndStatusIn(Long slotId, Long userId, Collection<SignupStatus> statuses);
+
     @Query("select s.slot.id from Signup s where s.id = :id and s.event.id = :eventId")
     Optional<Long> findSlotIdByIdAndEventId(@Param("id") Long id, @Param("eventId") Long eventId);
 

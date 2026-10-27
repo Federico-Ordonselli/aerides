@@ -74,6 +74,7 @@ public class MembershipService {
         auditService.record(groupId, actorId, AuditAction.MEMBER_REMOVED, AuditEntityType.MEMBERSHIP, target.getId(),
                 Map.of("userId", targetUserId));
         membershipRepository.delete(target);
+        eventPublisher.publishEvent(new MembershipEndedEvent(groupId, targetUserId));
         eventPublisher.publishEvent(new GroupAccessRevokedEvent(groupId, targetUserId));
     }
 
@@ -86,6 +87,7 @@ public class MembershipService {
         auditService.record(groupId, userId, AuditAction.MEMBER_LEFT, AuditEntityType.MEMBERSHIP,
                 membership.getId());
         membershipRepository.delete(membership);
+        eventPublisher.publishEvent(new MembershipEndedEvent(groupId, userId));
         eventPublisher.publishEvent(new GroupAccessRevokedEvent(groupId, userId));
     }
 

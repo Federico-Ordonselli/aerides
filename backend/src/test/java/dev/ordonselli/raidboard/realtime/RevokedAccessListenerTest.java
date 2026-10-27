@@ -40,7 +40,7 @@ class RevokedAccessListenerTest {
 
     @BeforeEach
     void setUp() {
-        listener = new RevokedAccessListener(userRegistry, clientOutboundChannel);
+        listener = new RevokedAccessListener(userRegistry, new StompSessionCloser(clientOutboundChannel));
     }
 
     @Test

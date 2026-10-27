@@ -34,6 +34,22 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     List<Notification> findAllByUserIdOrderByIdAsc(Long userId);
 
+    /** Failed notifications with attempts left, oldest first. */
+    List<Notification> findAllByStatusAndAttemptsLessThanOrderByIdAsc(NotificationStatus status, int attempts);
+
+    /**
+     * Takes a failed notification back for one more attempt and returns the number of rows changed (1 or 0).
+     * Like {@link #insertIfAbsent}, PostgreSQL decides atomically: if two runs try to retry the same row,
+     * only one of them gets 1 and sends the email.
+     */
+    @Modifying
+    @Transactional
+    @Query(value = """
+            UPDATE notifications SET status = 'PENDING', attempts = attempts + 1
+            WHERE id = :id AND status = 'FAILED' AND attempts < :maxAttempts
+            """, nativeQuery = true)
+    int claimForRetry(@Param("id") Long id, @Param("maxAttempts") int maxAttempts);
+
     @Modifying
     @Transactional
     @Query("update Notification n set n.status = :status, n.sentAt = :sentAt where n.id = :id")

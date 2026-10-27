@@ -47,6 +47,10 @@ public class Notification {
     @Column(name = "sent_at")
     private Instant sentAt;
 
+    /** Delivery attempts so far: 1 for the first one, incremented by {@link NotificationRepository#claimForRetry}. */
+    @Column(nullable = false, insertable = false, updatable = false)
+    private int attempts;
+
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private Instant createdAt;
 
@@ -80,6 +84,10 @@ public class Notification {
 
     public Instant getSentAt() {
         return sentAt;
+    }
+
+    public int getAttempts() {
+        return attempts;
     }
 
     public Instant getCreatedAt() {

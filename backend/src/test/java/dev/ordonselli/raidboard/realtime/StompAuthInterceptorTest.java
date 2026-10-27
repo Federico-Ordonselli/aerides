@@ -9,7 +9,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,25 +32,30 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 @ExtendWith(MockitoExtension.class)
 class StompAuthInterceptorTest {
 
+    private static final Instant NOW = Instant.parse("2026-10-27T10:00:00Z");
+    private static final String SESSION_ID = "session-1";
+
     @Mock
     private JwtDecoder jwtDecoder;
     @Mock
     private SubscriptionAuthorizer subscriptionAuthorizer;
 
     private final MessageChannel channel = mock(MessageChannel.class);
+    private final TokenExpiryRegistry tokenExpiryRegistry = new TokenExpiryRegistry();
     private StompAuthInterceptor interceptor;
 
     @BeforeEach
     void setUp() {
-        interceptor = new StompAuthInterceptor(jwtDecoder, subscriptionAuthorizer);
+        interceptor = new StompAuthInterceptor(jwtDecoder, subscriptionAuthorizer, tokenExpiryRegistry,
+                Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
     void connectWithAValidTokenAttachesTheUserToTheSession() {
-        Jwt jwt = Jwt.withTokenValue("good").header("alg", "HS256").subject("5")
-                .issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(60)).build();
-        when(jwtDecoder.decode("good")).thenReturn(jwt);
+        Instant expiresAt = NOW.plusSeconds(60);
+        when(jwtDecoder.decode("good")).thenReturn(jwt("5", expiresAt));
         StompHeaderAccessor connect = StompHeaderAccessor.create(StompCommand.CONNECT);
+        connect.setSessionId(SESSION_ID);
         connect.addNativeHeader("Authorization", "Bearer good");
 
         Message<?> result = interceptor.preSend(message(connect), channel);
@@ -56,6 +63,9 @@ class StompAuthInterceptorTest {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(result);
         assertThat(accessor.getUser()).isInstanceOf(JwtAuthenticationToken.class);
         assertThat(accessor.getUser().getName()).isEqualTo("5");
+        // The token's expiry is remembered for the later frames and for the sweep
+        assertThat(tokenExpiryRegistry.isExpired(SESSION_ID, expiresAt.minusSeconds(1))).isFalse();
+        assertThat(tokenExpiryRegistry.isExpired(SESSION_ID, expiresAt)).isTrue();
     }
 
     @Test
@@ -74,7 +84,7 @@ class StompAuthInterceptorTest {
 
         assertThatThrownBy(() -> interceptor.preSend(message(connect), channel))
                 .isInstanceOf(MessageDeliveryException.class)
-                .hasMessage("Authentication required");
+                .hasMessage(StompAuthInterceptor.AUTHENTICATION_REQUIRED);
     }
 
     @Test
@@ -89,14 +99,23 @@ class StompAuthInterceptorTest {
 
     @Test
     void subscribeIsCheckedForTheSessionUser() {
-        StompHeaderAccessor subscribe = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
-        subscribe.setDestination("/topic/events/10");
-        subscribe.setUser(() -> "5");
+        tokenExpiryRegistry.register(SESSION_ID, NOW.plusSeconds(60));
+        StompHeaderAccessor subscribe = subscribe("/topic/events/10");
         when(subscriptionAuthorizer.canSubscribe(5L, "/topic/events/10")).thenReturn(false);
 
         assertThatThrownBy(() -> interceptor.preSend(message(subscribe), channel))
                 .isInstanceOf(MessageDeliveryException.class)
                 .hasMessage("Subscription not allowed");
+    }
+
+    @Test
+    void subscribeAfterTheTokenExpiredIsRejected() {
+        tokenExpiryRegistry.register(SESSION_ID, NOW);
+
+        assertThatThrownBy(() -> interceptor.preSend(message(subscribe("/topic/events/10")), channel))
+                .isInstanceOf(MessageDeliveryException.class)
+                .hasMessage(StompAuthInterceptor.AUTHENTICATION_REQUIRED);
+        verify(subscriptionAuthorizer, never()).canSubscribe(anyLong(), any());
     }
 
     @Test
@@ -107,6 +126,19 @@ class StompAuthInterceptorTest {
 
         assertThatThrownBy(() -> interceptor.preSend(message(send), channel))
                 .isInstanceOf(MessageDeliveryException.class);
+    }
+
+    private static StompHeaderAccessor subscribe(String destination) {
+        StompHeaderAccessor subscribe = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        subscribe.setDestination(destination);
+        subscribe.setSessionId(SESSION_ID);
+        subscribe.setUser(() -> "5");
+        return subscribe;
+    }
+
+    private static Jwt jwt(String subject, Instant expiresAt) {
+        return Jwt.withTokenValue("good").header("alg", "HS256").subject(subject)
+                .issuedAt(expiresAt.minusSeconds(900)).expiresAt(expiresAt).build();
     }
 
     private static Message<byte[]> message(StompHeaderAccessor accessor) {

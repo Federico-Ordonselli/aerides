@@ -53,7 +53,8 @@ CA store, which has Neon's root (ISRG Root X1, Let's Encrypt); without it pgjdbc
 
 The free instance has 0.1 CPU, so a cold start (after 15 idle minutes) is CPU-bound: the JVM spends it loading and
 verifying classes, and the slowest single step is Spring Data checking each `@Query` through Hibernate's HQL parser.
-With the plain fat jar Render logged `Started AeridesApplication in 257.693 seconds`.
+Render logged `Started AeridesApplication in 257.693 seconds` with the plain fat jar, and `101.994 seconds` with this
+image (2.5x faster). Render's 0.1 CPU is slower than the local simulation below, so its absolute numbers are higher.
 
 The runtime stage of the `Dockerfile` does three things. Measured locally with the same limits
 (`docker run --memory=512m --cpus=0.1`), from `docker run` to the first login + API call + page:

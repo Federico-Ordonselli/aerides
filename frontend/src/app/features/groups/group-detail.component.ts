@@ -13,6 +13,7 @@ import { filter, switchMap } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { confirmAction } from '../../shared/components/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state.component';
+import { ErrorStateComponent } from '../../shared/components/error-state.component';
 import { Game, GameSearchResult } from '../games/game.models';
 import { GamesService } from '../games/games.service';
 import { GroupGamesComponent } from '../games/group-games.component';
@@ -30,6 +31,7 @@ import { MembersTableComponent, RoleChange } from './members-table.component';
     MatProgressBarModule,
     MatTabsModule,
     EmptyStateComponent,
+    ErrorStateComponent,
     GroupGamesComponent,
     MembersTableComponent,
   ],

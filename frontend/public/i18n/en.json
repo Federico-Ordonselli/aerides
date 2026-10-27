@@ -46,7 +46,8 @@
     "generic": "Something went wrong, please try again",
     "network": "Server unreachable, check your connection",
     "forbidden": "You don't have permission to do this",
-    "server": "Server error, please try again later"
+    "server": "Server error, please try again later",
+    "loadFailed": "Check your connection and try again."
   },
   "realtime": {
     "promoted": "A seat opened up: you are now confirmed for “{{title}}”",
@@ -54,7 +55,8 @@
   },
   "layout": {
     "language": "Language",
-    "groups": "Groups"
+    "groups": "Groups",
+    "menu": "Account menu"
   },
   "home": {
     "welcome": "Hi, {{name}}!",
@@ -264,5 +266,85 @@
       "outdated": "Someone changed this event in the meantime: the page has been refreshed",
       "notAllowedNow": "This action is no longer possible for this event"
     }
+  },
+  "stats": {
+    "title": "Statistics",
+    "period": "Period",
+    "periodMonths": "{{count}} months",
+    "emptyTitle": "No finished events in this period",
+    "emptyMessage": "Statistics appear once events are marked as completed or cancelled.",
+    "months": {
+      "title": "Events per month",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "roles": {
+      "title": "Most unfilled roles",
+      "subtitle": "Seats left empty on completed events",
+      "none": "Every seat was filled.",
+      "missing": "{{missing}} empty seats out of {{capacity}} in {{events}} events"
+    },
+    "attendance": {
+      "title": "Attendance",
+      "subtitle": "Confirmed seats on completed events since the member joined",
+      "member": "Member",
+      "attended": "Attended",
+      "rate": "Rate",
+      "withdrawals": "Withdrawals"
+    }
+  },
+  "audit": {
+    "title": "Activity log",
+    "action": "Action",
+    "allActions": "All actions",
+    "when": "When",
+    "actor": "By",
+    "details": "Details",
+    "deletedUser": "Deleted user",
+    "emptyTitle": "No activity yet",
+    "emptyMessage": "Changes to the group, members, games and events appear here.",
+    "actions": {
+      "GROUP_CREATED": "Group created",
+      "GROUP_UPDATED": "Group updated",
+      "GROUP_DELETED": "Group deleted",
+      "INVITE_CODE_REGENERATED": "Invite code regenerated",
+      "DISCORD_WEBHOOK_UPDATED": "Discord webhook updated",
+      "MEMBER_JOINED": "Member joined",
+      "MEMBER_ROLE_CHANGED": "Role changed",
+      "MEMBER_REMOVED": "Member removed",
+      "MEMBER_LEFT": "Member left",
+      "GAME_ADDED": "Game added",
+      "GAME_REMOVED": "Game removed",
+      "EVENT_CREATED": "Event created",
+      "EVENT_UPDATED": "Event updated",
+      "EVENT_PUBLISHED": "Event published",
+      "EVENT_CANCELLED": "Event cancelled",
+      "EVENT_COMPLETED": "Event completed",
+      "SIGNUP_APPROVED": "Sign-up approved",
+      "SIGNUP_REJECTED": "Sign-up rejected"
+    },
+    "detailKeys": {
+      "name": "name",
+      "rawgId": "RAWG id",
+      "userId": "member",
+      "from": "from",
+      "to": "to",
+      "eventId": "event",
+      "status": "status",
+      "changed": "changed fields",
+      "configured": "configured",
+      "description": "description",
+      "title": "title",
+      "startsAt": "starts at"
+    }
+  },
+  "paginator": {
+    "itemsPerPage": "Items per page",
+    "range": "{{start}} – {{end}} of {{length}}",
+    "empty": "0 of 0",
+    "next": "Next page",
+    "previous": "Previous page",
+    "first": "First page",
+    "last": "Last page"
   }
 }

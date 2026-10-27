@@ -1,6 +1,8 @@
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { Component, computed, inject, input, output, ViewEncapsulation } from '@angular/core';
 import { CalendarOptions, EventSourceFuncInfo, FullCalendarModule } from '@fullcalendar/angular';
 import dayGridPlugin from '@fullcalendar/angular/daygrid';
+import listPlugin from '@fullcalendar/angular/list';
 import themePlugin from '@fullcalendar/angular/themes/monarch';
 import timeGridPlugin from '@fullcalendar/angular/timegrid';
 // Imported from the core package: the @fullcalendar/angular/locales/* entry points are missing in 7.1.3
@@ -15,6 +17,7 @@ import { EventsService } from './events.service';
  * Month/week calendar of a group's events (FullCalendar, MIT packages only).
  * It asks the API only for the visible date range, every time the user moves to another month or week.
  * Loaded with @defer from the event list, so FullCalendar's code is downloaded only when the calendar is opened.
+ * On phones it starts as an agenda list: a month grid is unreadable at that width.
  */
 @Component({
   selector: 'app-event-calendar',
@@ -36,6 +39,7 @@ import { EventsService } from './events.service';
 export class EventCalendarComponent {
   private readonly eventsService = inject(EventsService);
   private readonly languageService = inject(LanguageService);
+  private readonly isSmallScreen = inject(BreakpointObserver).isMatched('(max-width: 600px)');
 
   readonly groupId = input.required<number>();
   readonly eventSelected = output<number>();
@@ -43,9 +47,11 @@ export class EventCalendarComponent {
   protected readonly options = computed<CalendarOptions>(() => {
     const groupId = this.groupId();
     return {
-      plugins: [themePlugin, dayGridPlugin, timeGridPlugin],
-      initialView: 'dayGridMonth',
-      headerToolbar: { start: 'prev,next today', center: 'title', end: 'dayGridMonth,timeGridWeek' },
+      plugins: [themePlugin, dayGridPlugin, timeGridPlugin, listPlugin],
+      initialView: this.isSmallScreen ? 'listMonth' : 'dayGridMonth',
+      headerToolbar: this.isSmallScreen
+        ? { start: 'prev,next', center: 'title', end: 'listMonth,dayGridMonth' }
+        : { start: 'prev,next today', center: 'title', end: 'dayGridMonth,timeGridWeek,listMonth' },
       locales: [itLocale],
       locale: this.languageService.current(),
       firstDay: 1,

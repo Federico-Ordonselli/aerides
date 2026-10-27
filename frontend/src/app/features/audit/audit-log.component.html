@@ -1,0 +1,77 @@
+<header class="page-header">
+  <div>
+    <a [routerLink]="['/groups', groupId()]" class="back-link">
+      <mat-icon>arrow_back</mat-icon>
+      {{ group.hasValue() ? group.value().name : ('groups.backToList' | translate) }}
+    </a>
+    <h1>{{ 'audit.title' | translate }}</h1>
+  </div>
+  <mat-form-field subscriptSizing="dynamic" class="action-filter">
+    <mat-label>{{ 'audit.action' | translate }}</mat-label>
+    <mat-select [value]="action()" (selectionChange)="filterBy($event.value)" data-testid="action-filter">
+      <mat-option [value]="null">{{ 'audit.allActions' | translate }}</mat-option>
+      @for (item of actions; track item) {
+        <mat-option [value]="item">{{ 'audit.actions.' + item | translate }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+</header>
+
+@if (entries.isLoading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+@if (entries.error()) {
+  <app-error-state (retry)="entries.reload()" />
+} @else if (entries.hasValue()) {
+  @let page = entries.value();
+  @if (page.totalElements === 0) {
+    <app-empty-state icon="history" [title]="'audit.emptyTitle' | translate" [message]="'audit.emptyMessage' | translate" />
+  } @else {
+    <div class="table-wrapper">
+      <table mat-table [dataSource]="page.content" data-testid="audit-table">
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef>{{ 'audit.when' | translate }}</th>
+          <td mat-cell *matCellDef="let entry" class="nowrap">
+            {{ entry.createdAt | date: 'd MMM y, HH:mm' : undefined : languageService.current() }}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="actor">
+          <th mat-header-cell *matHeaderCellDef>{{ 'audit.actor' | translate }}</th>
+          <td mat-cell *matCellDef="let entry">
+            @if (entry.actorName) {
+              {{ entry.actorName }}
+            } @else {
+              <span class="muted">{{ 'audit.deletedUser' | translate }}</span>
+            }
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="action">
+          <th mat-header-cell *matHeaderCellDef>{{ 'audit.action' | translate }}</th>
+          <td mat-cell *matCellDef="let entry">{{ 'audit.actions.' + entry.action | translate }}</td>
+        </ng-container>
+        <ng-container matColumnDef="details">
+          <th mat-header-cell *matHeaderCellDef>{{ 'audit.details' | translate }}</th>
+          <td mat-cell *matCellDef="let entry">
+            <ul class="details">
+              @for (item of details(entry); track item.key) {
+                <li>
+                  <span class="muted">{{ 'audit.detailKeys.' + item.key | translate }}:</span>
+                  {{ item.value }}
+                </li>
+              }
+            </ul>
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="columns"></tr>
+        <tr mat-row *matRowDef="let entry; columns: columns" data-testid="audit-row"></tr>
+      </table>
+    </div>
+    <mat-paginator
+      [length]="page.totalElements"
+      [pageIndex]="page.page"
+      [pageSize]="page.size"
+      [pageSizeOptions]="[20, 50, 100]"
+      (page)="pageChanged($event)"
+    />
+  }
+}

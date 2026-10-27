@@ -16,6 +16,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { filter, switchMap } from 'rxjs';
 
 import { confirmAction } from '../../shared/components/confirm-dialog.component';
+import { ErrorStateComponent } from '../../shared/components/error-state.component';
 import { GroupsService } from './groups.service';
 
 /** Same rule as the backend DiscordWebhookRequest: only real Discord webhook URLs. */
@@ -35,6 +36,7 @@ export const DISCORD_WEBHOOK_PATTERN = /^https:\/\/(discord\.com|discordapp\.com
     MatInputModule,
     MatProgressBarModule,
     MatTooltipModule,
+    ErrorStateComponent,
   ],
   templateUrl: './group-settings.component.html',
   styleUrl: './group-settings.component.scss',

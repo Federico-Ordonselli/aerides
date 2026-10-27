@@ -1,0 +1,89 @@
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+  font: var(--mat-sys-label-large);
+}
+
+h1 {
+  margin: 0.5rem 0 0;
+  font: var(--mat-sys-headline-medium);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.chart-container {
+  position: relative;
+  height: 18rem;
+}
+
+.roles {
+  margin: 0;
+  padding-left: 1.25rem;
+
+  li {
+    display: flex;
+    flex-direction: column;
+    padding: 0.4rem 0;
+  }
+}
+
+.role-name {
+  font: var(--mat-sys-title-small);
+}
+
+.muted {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.rate {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 8rem;
+
+  mat-progress-bar {
+    flex: 1;
+  }
+}
+
+@media (max-width: 600px) {
+  .period {
+    width: 100%;
+
+    mat-button-toggle {
+      flex: 1;
+    }
+  }
+}
+
+// One column on tablets and phones: the chart needs the full width to stay readable
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-container {
+    height: 14rem;
+  }
+}

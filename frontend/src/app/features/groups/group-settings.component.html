@@ -1,5 +1,7 @@
 @if (group.isLoading() && !group.hasValue()) {
   <mat-progress-bar mode="indeterminate" />
+} @else if (group.error()) {
+  <app-error-state (retry)="group.reload()" />
 } @else if (group.hasValue()) {
   <header class="page-header">
     <a [routerLink]="['/groups', groupId()]" class="back-link">

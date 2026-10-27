@@ -19,11 +19,13 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 import { LanguageService } from '../../core/i18n/language.service';
 import { EmptyStateComponent } from '../../shared/components/empty-state.component';
+import { ErrorStateComponent } from '../../shared/components/error-state.component';
+import { PageRequest } from '../../shared/models/page.models';
 import { GamesService } from '../games/games.service';
 import { hasRole } from '../groups/group.models';
 import { GroupsService } from '../groups/groups.service';
 import { EventCalendarComponent } from './event-calendar.component';
-import { EVENT_STATUSES, EventFilter, EventStatus, PageRequest } from './event.models';
+import { EVENT_STATUSES, EventFilter, EventStatus } from './event.models';
 import { EventStatusComponent } from './event-status.component';
 import { EventsService } from './events.service';
 
@@ -49,6 +51,7 @@ const DEFAULT_SORT = 'startsAt,asc';
     MatSortModule,
     MatTableModule,
     EmptyStateComponent,
+    ErrorStateComponent,
     EventCalendarComponent,
     EventStatusComponent,
   ],

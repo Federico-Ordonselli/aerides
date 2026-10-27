@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -25,6 +26,7 @@ import { RealtimeService } from '../realtime/realtime.service';
     MatButtonModule,
     MatButtonToggleModule,
     MatIconModule,
+    MatMenuModule,
   ],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',

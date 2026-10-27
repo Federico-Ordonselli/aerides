@@ -15,9 +15,7 @@
 @if (groups.isLoading() && !groups.hasValue()) {
   <mat-progress-bar mode="indeterminate" />
 } @else if (groups.error()) {
-  <app-empty-state icon="cloud_off" [title]="'errors.generic' | translate">
-    <button mat-stroked-button (click)="groups.reload()">{{ 'common.retry' | translate }}</button>
-  </app-empty-state>
+  <app-error-state (retry)="groups.reload()" />
 } @else if (groups.hasValue()) {
   @if (groups.value().length === 0) {
     <app-empty-state icon="groups" [title]="'groups.list.emptyTitle' | translate" [message]="'groups.list.emptyMessage' | translate">

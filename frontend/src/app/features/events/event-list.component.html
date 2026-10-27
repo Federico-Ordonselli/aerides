@@ -69,9 +69,7 @@
     <mat-progress-bar mode="indeterminate" />
   }
   @if (events.error()) {
-    <app-empty-state icon="cloud_off" [title]="'errors.generic' | translate">
-      <button mat-stroked-button (click)="events.reload()">{{ 'common.retry' | translate }}</button>
-    </app-empty-state>
+    <app-error-state (retry)="events.reload()" />
   } @else if (events.hasValue()) {
     @let page = events.value();
     @if (page.totalElements === 0) {

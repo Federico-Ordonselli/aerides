@@ -46,7 +46,8 @@
     "generic": "Qualcosa è andato storto, riprova",
     "network": "Server non raggiungibile, controlla la connessione",
     "forbidden": "Non hai i permessi per questa operazione",
-    "server": "Errore del server, riprova più tardi"
+    "server": "Errore del server, riprova più tardi",
+    "loadFailed": "Controlla la connessione e riprova."
   },
   "realtime": {
     "promoted": "Si è liberato un posto: ora sei confermato per «{{title}}»",
@@ -54,7 +55,8 @@
   },
   "layout": {
     "language": "Lingua",
-    "groups": "Gruppi"
+    "groups": "Gruppi",
+    "menu": "Menu account"
   },
   "home": {
     "welcome": "Ciao, {{name}}!",
@@ -264,5 +266,85 @@
       "outdated": "Qualcuno ha modificato l'evento nel frattempo: la pagina è stata aggiornata",
       "notAllowedNow": "Questa azione non è più possibile per questo evento"
     }
+  },
+  "stats": {
+    "title": "Statistiche",
+    "period": "Periodo",
+    "periodMonths": "{{count}} mesi",
+    "emptyTitle": "Nessun evento concluso in questo periodo",
+    "emptyMessage": "Le statistiche compaiono quando gli eventi vengono segnati come completati o annullati.",
+    "months": {
+      "title": "Eventi al mese",
+      "completed": "Completati",
+      "cancelled": "Annullati"
+    },
+    "roles": {
+      "title": "Ruoli più scoperti",
+      "subtitle": "Posti rimasti vuoti negli eventi completati",
+      "none": "Tutti i posti sono stati coperti.",
+      "missing": "{{missing}} posti vuoti su {{capacity}} in {{events}} eventi"
+    },
+    "attendance": {
+      "title": "Presenze",
+      "subtitle": "Posti confermati negli eventi completati da quando il membro è entrato",
+      "member": "Membro",
+      "attended": "Presenze",
+      "rate": "Percentuale",
+      "withdrawals": "Ritiri"
+    }
+  },
+  "audit": {
+    "title": "Registro attività",
+    "action": "Azione",
+    "allActions": "Tutte le azioni",
+    "when": "Quando",
+    "actor": "Autore",
+    "details": "Dettagli",
+    "deletedUser": "Utente eliminato",
+    "emptyTitle": "Nessuna attività",
+    "emptyMessage": "Qui compaiono le modifiche a gruppo, membri, giochi ed eventi.",
+    "actions": {
+      "GROUP_CREATED": "Gruppo creato",
+      "GROUP_UPDATED": "Gruppo modificato",
+      "GROUP_DELETED": "Gruppo eliminato",
+      "INVITE_CODE_REGENERATED": "Codice invito rigenerato",
+      "DISCORD_WEBHOOK_UPDATED": "Webhook Discord aggiornato",
+      "MEMBER_JOINED": "Membro entrato",
+      "MEMBER_ROLE_CHANGED": "Ruolo cambiato",
+      "MEMBER_REMOVED": "Membro rimosso",
+      "MEMBER_LEFT": "Membro uscito",
+      "GAME_ADDED": "Gioco aggiunto",
+      "GAME_REMOVED": "Gioco rimosso",
+      "EVENT_CREATED": "Evento creato",
+      "EVENT_UPDATED": "Evento modificato",
+      "EVENT_PUBLISHED": "Evento pubblicato",
+      "EVENT_CANCELLED": "Evento annullato",
+      "EVENT_COMPLETED": "Evento completato",
+      "SIGNUP_APPROVED": "Iscrizione approvata",
+      "SIGNUP_REJECTED": "Iscrizione rifiutata"
+    },
+    "detailKeys": {
+      "name": "nome",
+      "rawgId": "ID RAWG",
+      "userId": "membro",
+      "from": "da",
+      "to": "a",
+      "eventId": "evento",
+      "status": "stato",
+      "changed": "campi modificati",
+      "configured": "configurato",
+      "description": "descrizione",
+      "title": "titolo",
+      "startsAt": "inizio"
+    }
+  },
+  "paginator": {
+    "itemsPerPage": "Elementi per pagina",
+    "range": "{{start}} – {{end}} di {{length}}",
+    "empty": "0 di 0",
+    "next": "Pagina successiva",
+    "previous": "Pagina precedente",
+    "first": "Prima pagina",
+    "last": "Ultima pagina"
   }
 }

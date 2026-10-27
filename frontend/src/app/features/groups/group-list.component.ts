@@ -9,6 +9,7 @@ import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { EmptyStateComponent } from '../../shared/components/empty-state.component';
+import { ErrorStateComponent } from '../../shared/components/error-state.component';
 import { CreateGroupDialogComponent } from './create-group-dialog.component';
 import { GroupDetail } from './group.models';
 import { GroupsService } from './groups.service';
@@ -16,7 +17,7 @@ import { JoinGroupDialogComponent } from './join-group-dialog.component';
 
 @Component({
   selector: 'app-group-list',
-  imports: [RouterLink, TranslatePipe, MatButtonModule, MatCardModule, MatIconModule, MatProgressBarModule, EmptyStateComponent],
+  imports: [RouterLink, TranslatePipe, MatButtonModule, MatCardModule, MatIconModule, MatProgressBarModule, EmptyStateComponent, ErrorStateComponent],
   templateUrl: './group-list.component.html',
   styleUrl: './group-list.component.scss',
 })

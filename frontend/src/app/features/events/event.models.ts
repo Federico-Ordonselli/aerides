@@ -7,15 +7,6 @@ export const EVENT_STATUSES: readonly EventStatus[] = ['DRAFT', 'PUBLISHED', 'CA
 
 export type SignupStatus = 'CONFIRMED' | 'WAITLISTED' | 'PENDING' | 'REJECTED' | 'WITHDRAWN';
 
-/** One page of results, as returned by the backend PageResponse. */
-export interface Page<T> {
-  content: T[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-}
-
 export interface EventSummary {
   id: number;
   title: string;
@@ -107,12 +98,6 @@ export interface EventFilter {
   gameId?: number | null;
 }
 
-export interface PageRequest {
-  page: number;
-  size: number;
-  /** e.g. "startsAt,asc" */
-  sort?: string;
-}
 
 /** Statuses in which an event can still be edited. */
 export function isEditable(status: EventStatus): boolean {

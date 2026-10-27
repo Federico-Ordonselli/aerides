@@ -22,6 +22,14 @@ export const GROUP_ROUTES: Routes = [
     loadChildren: () => import('../events/events.routes').then((m) => m.EVENT_ROUTES),
   },
   {
+    path: ':groupId/stats',
+    loadChildren: () => import('../stats/stats.routes').then((m) => m.STATS_ROUTES),
+  },
+  {
+    path: ':groupId/audit',
+    loadChildren: () => import('../audit/audit.routes').then((m) => m.AUDIT_ROUTES),
+  },
+  {
     path: ':groupId/settings',
     canActivate: [groupRoleGuard('OFFICER')],
     loadComponent: () => import('./group-settings.component').then((m) => m.GroupSettingsComponent),

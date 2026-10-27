@@ -2,13 +2,12 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { Page, PageRequest } from '../../shared/models/page.models';
 import {
   CreateEventRequest,
   EventDetail,
   EventFilter,
   EventSummary,
-  Page,
-  PageRequest,
   Signup,
   UpdateEventRequest,
 } from './event.models';

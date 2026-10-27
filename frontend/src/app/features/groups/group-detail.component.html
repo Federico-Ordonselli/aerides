@@ -22,7 +22,15 @@
         <mat-icon>event</mat-icon>
         {{ 'groups.events' | translate }}
       </a>
+      <a mat-stroked-button [routerLink]="['/groups', detail.id, 'stats']" data-testid="stats-link">
+        <mat-icon>insights</mat-icon>
+        {{ 'stats.title' | translate }}
+      </a>
       @if (isOfficer()) {
+        <a mat-stroked-button [routerLink]="['/groups', detail.id, 'audit']" data-testid="audit-link">
+          <mat-icon>history</mat-icon>
+          {{ 'audit.title' | translate }}
+        </a>
         <a mat-stroked-button [routerLink]="['/groups', detail.id, 'settings']" data-testid="settings-link">
           <mat-icon>settings</mat-icon>
           {{ 'groups.settings.title' | translate }}
@@ -40,7 +48,9 @@
   <mat-tab-group mat-stretch-tabs="false" animationDuration="0ms">
     <mat-tab [label]="('groups.tabs.members' | translate) + ' (' + detail.memberCount + ')'">
       <div class="tab-content">
-        @if (members.hasValue()) {
+        @if (members.error()) {
+          <app-error-state (retry)="members.reload()" />
+        } @else if (members.hasValue()) {
           <app-members-table
             [members]="members.value()"
             [myRole]="detail.myRole"
@@ -53,7 +63,9 @@
     </mat-tab>
     <mat-tab [label]="'groups.tabs.games' | translate">
       <div class="tab-content">
-        @if (games.hasValue()) {
+        @if (games.error()) {
+          <app-error-state (retry)="games.reload()" />
+        } @else if (games.hasValue()) {
           <app-group-games
             [games]="games.value()"
             [canManage]="isOfficer()"

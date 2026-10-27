@@ -91,14 +91,15 @@ backend/   Spring Boot API, package by feature under dev.ordonselli.raidboard
   game/      RAWG client and per-group game catalog
   event/     events, slots, weekly series, paginated list with JPA Specifications
   signup/    sign-ups, waitlist promotion, approvals (row locks against overbooking)
-  audit/     audit log written in the same transaction as each change
+  audit/     audit log written in the same transaction as each change, paginated audit page
+  stats/     group statistics: plain SQL aggregations through JdbcClient
   realtime/  STOMP over WebSocket: authentication on CONNECT, authorization on SUBSCRIBE, live messages
   notification/  emails (Thymeleaf, IT/EN), reminder job, Discord webhook
   common/    error handling (ProblemDetail), rate limiting, validation, OpenAPI, cache, clock
 frontend/  Angular app
   core/      auth (service, interceptor, guards), HTTP error handling, i18n, layout, realtime (STOMP client)
-  shared/    reusable validators and components (empty state, confirm dialog)
-  features/  one folder per feature, lazy-loaded (auth, home, groups, games, events)
+  shared/    reusable validators, components (empty state, error state, confirm dialog) and page models
+  features/  one folder per feature, lazy-loaded (auth, home, groups, games, events, stats, audit)
 ```
 
 ## Security design
@@ -130,6 +131,8 @@ Every group-scoped endpoint is protected with `@PreAuthorize("@groupSecurity.has
 | Change roles, remove members, regenerate the invite code, set the Discord webhook, delete the group | | | ✓ |
 | See published events, sign up, withdraw | ✓ | ✓ | ✓ |
 | See drafts; create, edit, publish, cancel, complete events; approve or reject sign-ups | | ✓ | ✓ |
+| See the group statistics | ✓ | ✓ | ✓ |
+| Read the audit log | | ✓ | ✓ |
 
 - **Non-members get 404, not 403**: the API doesn't even confirm that the group exists. Members without the required role get 403.
 - Services still load the caller's membership, and every group-owned lookup filters by group id (`findByIdAndGroupId`), so an id from another group is never found even if a check were forgotten.
@@ -161,6 +164,17 @@ Services publish domain events (`EventChangedEvent`, `SignupPromotedEvent`, `Eve
 - **Discord** (rule 9): if the group has a webhook, a message is posted when an event is published and when a sign-up leaves exactly one free seat. It runs in the background and every error is logged and swallowed, so Discord being down never breaks the main flow. Mentions are disabled (`allowed_mentions`), so an event called "@everyone" pings nobody, and the webhook URL (a secret) is never logged.
 - **Trade-offs**: the in-memory broker works for a single backend instance; with more, a broker relay (RabbitMQ) would be needed. An open WebSocket outlives its access token (see [Security design](#security-design)). Emails use one time zone for everyone (`APP_TIME_ZONE`), because users don't have their own yet.
 
+## Statistics and audit log
+
+- **`GET /api/groups/{id}/stats?from&to&zone`** (any member): attendance per member, events per month, most unfilled roles. Default period: the last 12 months; at most 36.
+  - **Attendance** = confirmed seats on **completed** events ÷ completed events **since the member joined**. Nobody looks absent from raids held before they joined. There is no no-show tracking yet, so a confirmed seat on a completed event counts as present; withdrawals are shown next to it.
+  - **Unfilled roles** = capacity − confirmed seats on completed events, grouped by role name ignoring case and spaces (role names are free text per event).
+  - **Months follow the user's time zone** (`zone`, an IANA id the browser sends): an event at 00:30 on 1 November in Rome is still 31 October in UTC. Empty months are filled in by the service, so the chart axis has no gaps.
+  - The queries are plain SQL with `JdbcClient` (`StatsRepository`), not JPA: they return numbers, not entities, and one `GROUP BY` is clearer and faster than loading rows to count them in Java. `StatsIT` runs them on PostgreSQL against a small data set whose every number is known.
+- **`GET /api/groups/{id}/audit?action&page&size`** (officer and owner): the log, newest first. The client can choose page and size but not the order. Actor names are loaded with one query per page (no N+1); entries of a deleted user stay, without a name.
+- **Frontend**: Chart.js is registered on the stats route, so it is downloaded only by whoever opens the page (its own ~160 kB chunk; the initial bundle didn't grow). The Material paginator labels are translated too (`TranslatedPaginatorIntl`), provided on the lazy routes for the same reason.
+- **i18n check**: `translations.spec.ts` fails if Italian and English have different keys, or if a key written in the code (or built from an enum, like `audit.actions.*`) is missing.
+
 ## Configuration
 
 Everything that changes between environments comes from environment variables. See [`.env.example`](.env.example). Secrets have no default value, and the backend refuses to start if `JWT_SECRET` is missing or shorter than 32 characters.
@@ -171,7 +185,7 @@ Everything that changes between environments comes from environment variables. S
 - [x] **2. Groups and games**: group CRUD, invite codes, member roles, audit log, RAWG game catalog
 - [x] **3. Events and sign-ups**: slots, waitlist promotion, concurrency-safe sign-ups, recurrence, calendar
 - [x] **4. Real-time and notifications**: WebSocket updates, reminder emails, Discord webhooks
-- [ ] **5. Dashboard and polish**: statistics, audit log page, responsive layout
+- [x] **5. Dashboard and polish**: statistics, audit log page, i18n check, responsive layout, error states
 - [ ] **6. Quality and delivery**: Playwright e2e, GitHub Actions, Terraform for Azure, demo data
 
 ### Backlog (Milestone 6)
@@ -186,4 +200,5 @@ Tracked improvements that are not bugs, deliberately left for later:
 - **Retry failed emails**: notifications marked `FAILED` (SMTP down) are never retried; a retry with a cut-off (e.g. not after the event has started) would recover them.
 - **Per-user time zone**: emails write dates in `APP_TIME_ZONE`; users could store their own zone, like their language.
 - **Expire WebSocket sessions with their token**: keep the token's `exp` in the session attributes, refuse `SUBSCRIBE` after it with "Authentication required" (the client already refreshes and reconnects on that error), and close sessions whose token has expired with a periodic sweep over `SimpUserRegistry`.
+- **Real attendance**: let officers mark no-shows when completing an event; attendance would then count people who actually came, not confirmed seats.
 - **Calendar styles out of the initial bundle**: FullCalendar's CSS (~30 kB) is a global stylesheet; it could be loaded together with the deferred calendar chunk.

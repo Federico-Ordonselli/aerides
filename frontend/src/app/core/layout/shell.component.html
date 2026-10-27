@@ -5,15 +5,16 @@
   </a>
 
   <nav class="main-nav">
-    <a mat-button routerLink="/groups" routerLinkActive="active-link">
+    <a mat-button routerLink="/groups" routerLinkActive="active-link" [attr.aria-label]="'layout.groups' | translate">
       <mat-icon>groups</mat-icon>
-      {{ 'layout.groups' | translate }}
+      <span class="nav-label">{{ 'layout.groups' | translate }}</span>
     </a>
   </nav>
 
   <span class="spacer"></span>
 
   <mat-button-toggle-group
+    class="desktop-only"
     hideSingleSelectionIndicator
     [value]="languageService.current()"
     (change)="changeLanguage($event.value)"
@@ -25,12 +26,32 @@
   </mat-button-toggle-group>
 
   @if (authService.currentUser(); as user) {
-    <span class="user-name" data-testid="current-user">{{ user.displayName }}</span>
+    <span class="user-name desktop-only" data-testid="current-user">{{ user.displayName }}</span>
   }
-  <button mat-button (click)="logout()">
+  <button mat-button class="desktop-only" (click)="logout()">
     <mat-icon>logout</mat-icon>
     {{ 'auth.logout' | translate }}
   </button>
+
+  <!-- Phones: the language switch and logout don't fit in the bar, so they move into a menu -->
+  <button mat-icon-button class="mobile-only" [matMenuTriggerFor]="accountMenu" [attr.aria-label]="'layout.menu' | translate" data-testid="account-menu">
+    <mat-icon>account_circle</mat-icon>
+  </button>
+  <mat-menu #accountMenu="matMenu" xPosition="before">
+    @if (authService.currentUser(); as user) {
+      <div mat-menu-item disabled>{{ user.displayName }}</div>
+    }
+    @for (language of languages; track language) {
+      <button mat-menu-item (click)="changeLanguage(language)" [attr.aria-current]="language === languageService.current()">
+        <mat-icon>{{ language === languageService.current() ? 'radio_button_checked' : 'radio_button_unchecked' }}</mat-icon>
+        {{ language.toUpperCase() }}
+      </button>
+    }
+    <button mat-menu-item (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      {{ 'auth.logout' | translate }}
+    </button>
+  </mat-menu>
 </mat-toolbar>
 
 <main class="content">

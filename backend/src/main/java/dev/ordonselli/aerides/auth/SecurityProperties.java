@@ -23,5 +23,11 @@ public record SecurityProperties(
         @NotNull Duration accessTokenTtl,
         @NotNull Duration refreshTokenTtl,
         boolean refreshCookieSecure,
-        @NotEmpty List<String> allowedOrigins) {
+        @NotEmpty List<String> allowedOrigins,
+        List<String> statusPageOrigins) {
+
+    /** No status page origin unless configured: the readiness probe is then same-origin only. */
+    public SecurityProperties {
+        statusPageOrigins = statusPageOrigins == null ? List.of() : List.copyOf(statusPageOrigins);
+    }
 }

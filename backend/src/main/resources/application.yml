@@ -63,6 +63,8 @@ aerides:
     refresh-token-ttl: ${REFRESH_TOKEN_TTL:14d}
     refresh-cookie-secure: ${REFRESH_COOKIE_SECURE:true}
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+    # Origins allowed to GET /actuator/health/readiness cross-origin (the wake-up page of the demo). None by default
+    status-page-origins: ${STATUS_PAGE_ORIGINS:}
 
   rawg:
     base-url: ${RAWG_BASE_URL:https://api.rawg.io/api}

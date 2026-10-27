@@ -123,15 +123,27 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    /** The readiness probe, polled cross-origin by the static page that wakes the demo up. */
+    static final String READINESS_PATH = "/actuator/health/readiness";
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource(SecurityProperties properties) {
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        // Registered before "/**" because the first matching pattern wins. Only GET, no cookies, no extra headers:
+        // a "simple" request, so the browser doesn't even send a preflight
+        if (!properties.statusPageOrigins().isEmpty()) {
+            CorsConfiguration readiness = new CorsConfiguration();
+            readiness.setAllowedOrigins(properties.statusPageOrigins());
+            readiness.addAllowedMethod(HttpMethod.GET);
+            readiness.setAllowCredentials(false);
+            source.registerCorsConfiguration(READINESS_PATH, readiness);
+        }
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(properties.allowedOrigins());
         config.addAllowedMethod("*");
         config.addAllowedHeader("*");
         // Needed so the browser sends the refresh-token cookie on cross-origin calls in development
         config.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }

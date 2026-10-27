@@ -38,7 +38,7 @@ class RefreshTokenServiceTest {
     @BeforeEach
     void setUp() {
         SecurityProperties properties = new SecurityProperties("x".repeat(32), "aerides",
-                Duration.ofMinutes(15), Duration.ofDays(14), true, List.of("http://localhost:4200"));
+                Duration.ofMinutes(15), Duration.ofDays(14), true, List.of("http://localhost:4200"), List.of());
         service = new RefreshTokenService(refreshTokenRepository, properties, Clock.fixed(NOW, ZoneOffset.UTC));
         user = new User("mario@example.com", "hash", "Mario", "it");
         ReflectionTestUtils.setField(user, "id", 7L);

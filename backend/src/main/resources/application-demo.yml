@@ -7,5 +7,7 @@ server:
 aerides:
   security:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:${RENDER_EXTERNAL_URL}}
+    # The static page on GitHub Pages that wakes the sleeping instance up (wake-page/)
+    status-page-origins: ${STATUS_PAGE_ORIGINS:https://federico-ordonselli.github.io}
   notifications:
     app-url: ${APP_URL:${RENDER_EXTERNAL_URL}}

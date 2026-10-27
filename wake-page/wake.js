@@ -135,8 +135,10 @@ let redirectTimer = 0;
 
 /**
  * True only when the app itself says it is ready.
- * While the instance starts, Render answers for it. None of those answers counts as "up":
- * - a request that hangs until the app is ready: the per-request timeout ends it, and we ask again
+ * Measured on Render (2026-10-27): while the instance starts, this fetch (default Accept header) hangs with no answer, and
+ * the app answered after about 130 s. A browser navigation (Accept: text/html) instead gets Render's
+ * "Application loading" HTML page at once, with status 503. None of these counts as "up":
+ * - a request that hangs: the per-request timeout ends it, and we ask again
  * - Render's HTML loading page, or a 502/503: no CORS header, so the browser doesn't even let us read it
  *   (fetch rejects); and even if it did, it isn't JSON with status UP
  * - readiness DOWN/OUT_OF_SERVICE while the app is still starting: a 503 with a JSON body

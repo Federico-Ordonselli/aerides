@@ -12,6 +12,16 @@ services:
     dockerfilePath: ./deploy/render/Dockerfile
     dockerContext: .
     healthCheckPath: /actuator/health/readiness
+    # Deploy only when something the image is built from changes: what deploy/render/Dockerfile COPYs (frontend/,
+    # backend/mvnw, pom.xml, .mvn, src), the root .dockerignore (the build context is the repository root), the
+    # Dockerfile itself and this file. Docs, the wake page (GitHub Pages) and CI changes don't restart the demo.
+    buildFilter:
+      paths:
+        - backend/**
+        - frontend/**
+        - deploy/render/**
+        - render.yaml
+        - .dockerignore
     envVars:
       - key: JWT_SECRET
         generateValue: true # random 256-bit value, generated once by Render

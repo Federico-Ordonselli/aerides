@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { catchError, finalize, map, Observable, of, share, tap, throwError } from 'rxjs';
 
 import { AuthResponse, LoginRequest, RegisterRequest, User } from './auth.models';
+import { CrossTabRefreshService } from './cross-tab-refresh';
 
 const AUTH_API = '/api/auth';
 
@@ -18,6 +19,7 @@ const AUTH_API = '/api/auth';
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly crossTab = inject(CrossTabRefreshService);
 
   private readonly accessToken = signal<string | null>(null);
   private readonly user = signal<User | null>(null);
@@ -49,10 +51,12 @@ export class AuthService {
   /**
    * Gets a new access token using the refresh cookie. If several requests fail with 401 at the same time,
    * they all wait for the same refresh call: sending two would trigger the backend's reuse detection.
+   * Other tabs share the refresh cookie, so the call also waits for theirs (see CrossTabRefresh).
    */
   refresh(): Observable<AuthResponse> {
     if (!this.refreshInFlight$) {
-      this.refreshInFlight$ = this.http.post<AuthResponse>(`${AUTH_API}/refresh`, null).pipe(
+      const request$ = this.http.post<AuthResponse>(`${AUTH_API}/refresh`, null);
+      this.refreshInFlight$ = this.crossTab.run(request$).pipe(
         tap((response) => this.startSession(response)),
         catchError((error: unknown) => {
           this.clearSession();

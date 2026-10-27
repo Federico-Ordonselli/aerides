@@ -1,0 +1,44 @@
+# Publishes wake-page/ on GitHub Pages: the static page that wakes the sleeping Render demo up and then opens it.
+# No build step, the folder is uploaded as it is. Pages must use "GitHub Actions" as its source (Settings > Pages).
+# Every action is pinned by commit SHA, official ones included.
+name: Wake page
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - wake-page/**
+      - .github/workflows/wake-page.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deployment at a time; a newer push doesn't cancel one already in progress
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write # deploy to Pages
+      id-token: write # deploy-pages proves where the artifact comes from with an OIDC token
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false # no later step needs the token
+
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: wake-page
+
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -1,10 +1,8 @@
 # Aerides
 
-Aerides is a multi-tenant web app where gaming groups (guilds, clans, tabletop RPG tables) organize sessions: events with role-based slots, sign-ups, automatic waitlists, reminders and attendance stats.
+**A multi-tenant scheduling app for gaming groups: events with role-based slots, sign-ups, automatic waitlists, live updates, reminders and attendance stats.** Java 21 + Spring Boot 4 backend, Angular 22 frontend, PostgreSQL, shipped with Docker, GitHub Actions and Terraform.
 
-Under the hood it is a **resource-booking business application**: roles, approvals, notifications, audit log and reporting.
-
-**About the name**: the Tower of the Winds in Athens, the *Aerides*, is a public landmark that showed the winds and the time of day: the place to know when to gather.
+Under the theme it is a **resource-booking business application**, the kind consulting firms build for banks, insurers and public administration: per-tenant roles and permissions, approvals, concurrency-safe bookings, notifications, an audit log and reporting.
 
 [![Backend](https://github.com/Federico-Ordonselli/aerides/actions/workflows/backend.yml/badge.svg)](https://github.com/Federico-Ordonselli/aerides/actions/workflows/backend.yml)
 [![Frontend](https://github.com/Federico-Ordonselli/aerides/actions/workflows/frontend.yml/badge.svg)](https://github.com/Federico-Ordonselli/aerides/actions/workflows/frontend.yml)
@@ -13,16 +11,41 @@ Under the hood it is a **resource-booking business application**: roles, approva
 [![Infrastructure](https://github.com/Federico-Ordonselli/aerides/actions/workflows/infra.yml/badge.svg)](https://github.com/Federico-Ordonselli/aerides/actions/workflows/infra.yml)
 [![Secrets](https://github.com/Federico-Ordonselli/aerides/actions/workflows/secrets.yml/badge.svg)](https://github.com/Federico-Ordonselli/aerides/actions/workflows/secrets.yml)
 
-> Full scope, domain model and the 10 business rules: [docs/SPEC.md](docs/SPEC.md). Built in six milestones, see [Roadmap](#roadmap).
+## Try it
 
-## Tech stack
+> ### [▶ Open the live demo](https://federico-ordonselli.github.io/aerides/)
+> The free instance sleeps after 15 idle minutes: this page wakes it up (about 2 minutes) and opens the app when it's ready.
+>
+> | Account | Role in "Gilda dei Draghi" | Password |
+> |---|---|---|
+> | `giulia@example.com` | Owner | `aerides-demo` |
+> | `marco@example.com` | Officer | `aerides-demo` |
+> | `luca@example.com` | Member, waitlisted on "Vault of Glass" | `aerides-demo` |
+>
+> **Two-minute tour**: log in as Luca and open "Raid: Vault of Glass"; as Giulia in a private window, withdraw from the Tank slot. Luca is promoted and sees it live. Then look at *Statistics* and, as Giulia, the *Audit log*.
+>
+> All six accounts: [docs/demo-accounts.md](docs/demo-accounts.md) · API: [Swagger UI](https://aerides.onrender.com/swagger-ui.html) (authorize with the `accessToken` returned by a login)
 
-| Layer    | Technologies |
-|----------|--------------|
-| Backend  | Java 21, Spring Boot 4.1, Spring Security (JWT resource server), Spring Data JPA / Hibernate 7, PostgreSQL 17, Flyway, MapStruct, Bucket4j, springdoc-openapi |
-| Frontend | Angular 22 (standalone components, signals, zoneless), Angular Material 3, RxJS, STOMP (rx-stomp), FullCalendar, Chart.js via ng2-charts, ngx-translate (IT/EN) |
-| Testing  | JUnit 5, Mockito, Testcontainers, MockMvc, WireMock, GreenMail, Awaitility, Jest, Playwright |
-| DevOps   | Docker, Docker Compose, nginx, GitHub Actions, GitHub Container Registry, Terraform (Azure Container Apps + PostgreSQL Flexible Server), Render + Neon (demo), Mailpit |
+## Screenshots
+
+| | |
+|---|---|
+| ![Event detail: slots, sign-ups and the waitlist](docs/screenshots/event-detail.png) **Event detail**: role slots, waitlist, live updates | ![Group statistics](docs/screenshots/stats.png) **Statistics**: events per month, unfilled roles, attendance |
+| ![Calendar of the group's events](docs/screenshots/calendar.png) **Calendar**, loaded on demand | ![New event form](docs/screenshots/event-form.png) **Event form**: slots, weekly series, validation |
+
+<p align="center"><img src="docs/screenshots/mobile-event-detail.png" alt="Event detail on a phone" width="260"><br><em>Responsive down to phone size</em></p>
+
+## Features
+
+- **Groups and roles**: create a group, invite people with a code, three roles per group (owner, officer, member) enforced on every endpoint. Outsiders get 404, not 403.
+- **Game catalog**: search the public RAWG API (debounced, cached, graceful when it's down) and add games to the group.
+- **Events**: role-based slots (2 tanks, 2 healers, 6 DPS…), drafts, publishing, cancelling, completing, weekly series, a filtered and paginated list, a calendar view.
+- **Sign-ups**: pick a role; a full role puts you on a FIFO waitlist; a withdrawal promotes the next person in the same transaction; optional officer approval; withdrawal deadline.
+- **Real time**: the sign-up list updates live over WebSocket (STOMP); a promoted user gets a toast.
+- **Notifications**: reminder email 24 h before the event (exactly once), promotion email, retries for failed emails, optional Discord webhook per group. Emails in Italian or English.
+- **Dashboard**: attendance per member, events per month, most unfilled roles, in the user's time zone.
+- **Audit log**: who created, changed or cancelled what, and when, for officers and owners.
+- **Polish**: Italian and English UI, responsive layout, empty and error states.
 
 ## Architecture
 
@@ -57,240 +80,109 @@ flowchart LR
     api -->|game search, cached| rawg
 ```
 
-- **One origin**: nginx serves the Angular build and forwards `/api` and `/ws` to the backend, so the browser never makes a cross-origin call and the refresh cookie can be `SameSite=Strict`. The backend is never exposed directly.
-- **Package by feature** in the backend (`auth`, `group`, `event`, `signup`, ...), each with its controller, service, repository and DTOs. Entities never leave the service layer.
-- **Side effects after the commit**: services publish domain events in their transaction; WebSocket messages, emails and Discord posts are sent by listeners only once the data is committed (see [Real-time and notifications](#real-time-and-notifications)).
-- **PostgreSQL does the hard guarantees**: row locks against overbooking, partial unique indexes, `ON CONFLICT` for exactly-once emails. Each one has an integration test that fails without it.
+- **One origin**: nginx serves the Angular build and proxies `/api` and `/ws`, so the refresh cookie can be `SameSite=Strict` and the backend is never exposed directly.
+- **Package by feature** (`auth`, `group`, `event`, `signup`, …): each package holds its controller, service, repository and DTOs; entities never leave the service layer.
+- **Side effects after the commit**: services publish domain events; emails, WebSocket messages and Discord posts are sent only once the transaction has committed.
+- **PostgreSQL does the hard guarantees**: row locks against overbooking, partial unique indexes, `ON CONFLICT` for exactly-once emails.
 
-## Screenshots
+How each of these works, with its trade-offs and the test that proves it: **[docs/DESIGN.md](docs/DESIGN.md)**. Scope, data model and the 10 business rules: [docs/SPEC.md](docs/SPEC.md).
 
-> _Placeholders: the images go in [`docs/screenshots/`](docs/screenshots/) (start the stack with demo data, see [Local development](#local-development))._
+## Tech stack
 
-| | |
+| Layer | Technologies |
 |---|---|
-| **Event detail**, live sign-ups and waitlist: `docs/screenshots/event-detail.png` | **Calendar** of the group's events: `docs/screenshots/calendar.png` |
-| **Statistics**: attendance, events per month, unfilled roles: `docs/screenshots/stats.png` | **Event form** with slots and weekly recurrence: `docs/screenshots/event-form.png` |
+| Backend | Java 21, Spring Boot 4.1, Spring Security (JWT resource server), Spring Data JPA / Hibernate 7, PostgreSQL 17, Flyway, MapStruct, Bucket4j, Thymeleaf (emails), springdoc-openapi |
+| Frontend | Angular 22 (standalone components, signals, zoneless), Angular Material 3, RxJS, STOMP (rx-stomp), FullCalendar, Chart.js via ng2-charts, ngx-translate (IT/EN) |
+| Testing | JUnit 5, Mockito, Testcontainers, MockMvc, WireMock, GreenMail, Awaitility, Jest, Playwright |
+| DevOps | Docker, Docker Compose, nginx, GitHub Actions, GitHub Container Registry, Terraform (Azure Container Apps), Render + Neon (demo), gitleaks, Dependabot |
 
-## Quick start (Docker)
+## Run it locally
 
-Requirements: Docker with Compose.
+Requirements: Docker with Compose. One command creates `.env` with a random JWT secret and starts PostgreSQL, the backend, nginx with the app, and Mailpit:
 
 ```bash
-cp .env.example .env
-# set JWT_SECRET in .env, for example with: openssl rand -base64 48
-docker compose up --build
+sed "s|^JWT_SECRET=.*|JWT_SECRET=$(openssl rand -base64 48)|" .env.example > .env && docker compose up --build
 ```
 
 | URL | What |
-|-----|------|
-| http://localhost:4200 | Web app |
-| http://localhost:8080/swagger-ui.html | API documentation (Swagger UI) |
-| http://localhost:8080/actuator/health | Health check |
-| http://localhost:8025 | Mailpit (catches every email sent in development) |
+|---|---|
+| http://localhost:4200 | the app (register a user, or use development mode below for the demo data) |
+| http://localhost:8080/swagger-ui.html | API documentation |
+| http://localhost:8025 | Mailpit: every email the app sends |
 
-**Game search** needs a free RAWG API key: get one at [rawg.io/apidocs](https://rawg.io/apidocs) and set `RAWG_API_KEY` in `.env`. Without it everything else works, and the search box says the catalog is unavailable.
+**Development mode** (hot reload, demo data): `docker compose up -d postgres mailpit`, then `SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run` in `backend/` (seeds the demo accounts above on an empty database) and `npm install && npm start` in `frontend/`. Game search needs a free [RAWG API key](https://rawg.io/apidocs) in `RAWG_API_KEY`; without it the search box says the catalog is unavailable and everything else works.
 
-## Live demo
+## Testing
 
-> **[Open the demo](https://federico-ordonselli.github.io/aerides/)**: the free instance sleeps after 15 idle minutes, this page wakes it up (about 2 minutes) and opens it. Direct link: [aerides.onrender.com](https://aerides.onrender.com/) · demo users `giulia@example.com` (owner), `marco@example.com` (officer), `luca@example.com` (member), password `aerides-demo`. All six accounts and what each one tests: [docs/demo-accounts.md](docs/demo-accounts.md).
-> Try it: log in as Luca in one browser and open "Raid: Vault of Glass", then as Giulia in another browser withdraw from the Tank slot: Luca is promoted and sees it live.
-
-The demo runs on [Render](https://render.com)'s free tier, from [`render.yaml`](render.yaml). It's a quick, free way to show the app; the production-like deployment is the [Azure Terraform configuration](#deployment-on-azure-terraform).
-
-- **One service instead of two**: free Render services can't receive private-network traffic, so the usual nginx-in-front-of-the-backend layout would need two public services. Instead, [`deploy/render/Dockerfile`](deploy/render/Dockerfile) builds the Angular app into the backend's `static/` folder, and the `demo` Spring profile serves it (`SinglePageAppConfig`). App, API and WebSocket keep one origin, so the `SameSite=Strict` refresh cookie and `/ws` work exactly as behind nginx. Static files and Angular routes get their own public security chain (GET only, outside `/api`, `/ws`, `/actuator`); everything else still goes through the normal default-deny chain.
-- **No emails**: the free tier blocks SMTP ports, and a public demo shouldn't email addresses people type in. In the `demo` profile `LoggingMailSender` writes a log line instead of sending; templates, the `notifications` table and the exactly-once reminder logic run as usual.
-- **Database**: a free [Neon](https://neon.com) PostgreSQL in Frankfurt, because Render's free database is deleted after 30 days and the link has to keep working. Same least-privilege setup as on Azure: Flyway migrates as Neon's owner role, the connection pool uses the rows-only `aerides_app` role. It uses the direct endpoint (Neon's pooler is in transaction mode, which would drop the session's `lock_timeout` and Flyway's lock) and `sslmode=verify-full`. Setup steps: [deploy/render/README.md](deploy/render/README.md).
-- **Demo data**: `DemoDataSeeder` (profiles `dev` and `demo`) creates the users, group and events above at the first startup, through the real services, so waitlist, approvals and audit log follow the business rules. Three past raids are moved into the past with SQL and completed, so the statistics page has numbers. It runs in one transaction, and only if the demo users don't exist yet.
-- Test the same image locally: `docker build -f deploy/render/Dockerfile -t aerides-demo .`
-
-## Local development
-
-Requirements: JDK 21, Node 24, Docker (for PostgreSQL and the integration tests).
+| Suite | Count | What it covers |
+|---|---:|---|
+| Backend unit (`*Test`) | 150 | services with mocked repositories: business rules, permissions, edge cases, configuration |
+| Backend integration (`*IT`) | 206 | the real API through the security filters on PostgreSQL (Testcontainers): the full access matrix, concurrency, locks, emails (GreenMail), Discord (WireMock), WebSocket clients |
+| Frontend (Jest) | 91 | components, services, interceptors, validators, cross-tab refresh, i18n keys in both languages |
+| End-to-end (Playwright) | 2 | two users in two browsers: register → group → event → waitlist → live promotion + email; two tabs refreshing the session at once |
 
 ```bash
-# 1. Infrastructure only
-docker compose up -d postgres mailpit
-
-# 2. Backend on :8080. The "dev" profile provides a development JWT secret and,
-#    on an empty database, creates the demo data (users above, password aerides-demo)
-cd backend
-SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
-
-# 3. Frontend on :4200, proxying /api and /ws (WebSocket) to the backend
-cd frontend
-npm install
-npm start
+cd backend && ./mvnw verify                          # unit + integration (needs Docker)
+cd frontend && npm run lint && npm test && npm run build
+cd e2e && npx playwright test                        # against `docker compose up`
 ```
 
-Alternative to step 1 and 2: `./mvnw spring-boot:test-run` starts the backend with a throw-away PostgreSQL container managed by Testcontainers.
+- **Rules are tested where they are enforced**: overbooking with 20 parallel sign-ups on a 3-seat slot against real PostgreSQL, exactly-once reminders by running the job twice in parallel.
+- **Every guard was mutation-checked**: the row lock, the unique index, the `ON CONFLICT`, the access checks, the cross-tab lock were each removed by hand to watch their test fail.
+- **No sleeps**: concurrency tests start their threads together with latches; the two-tab e2e test reads the browser's lock state with `navigator.locks.query()`.
+- **CI**: six workflows, each triggered only by the folders it covers: backend, frontend (with a bundle budget), e2e on the full compose stack, Docker images to GHCR, Terraform `validate`, gitleaks secret scanning.
 
-## Tests and quality checks
+## Security notes
 
-```bash
-cd backend
-./mvnw verify          # unit tests (*Test) + integration tests on real PostgreSQL (*IT, needs Docker)
+- **Tokens**: 15-minute JWT access token kept in memory only; refresh token in an `HttpOnly`, `Secure`, `SameSite=Strict` cookie scoped to `/api/auth`, stored as a SHA-256 hash, **rotated on every use with reuse detection** (a replayed token revokes all of the user's sessions). Refreshes are serialized across browser tabs with the Web Locks API, so two tabs never trip reuse detection.
+- **Multi-tenancy**: every group endpoint is guarded by `@PreAuthorize`, and every lookup also filters by group id, so an id from another group is never found even if a check were forgotten. `GroupAccessIT` and `EventAccessIT` test every endpoint × outsider, member, officer, owner.
+- **Brute force**: Bucket4j rate limits on login (per IP + email, per IP, per account) and on refresh; login takes the same time for unknown emails, so timing doesn't reveal which accounts exist.
+- **WebSocket**: authenticated on `CONNECT`, authorized on every `SUBSCRIBE`; sockets are closed when a member loses access or the token expires.
+- **Least privilege in the database**: Flyway migrates as the schema owner; the app's connection pool uses a role that can only read and write rows.
+- **Secrets**: none in the repository (gitleaks on every push); the backend refuses to start without a strong `JWT_SECRET` and never prints it. API docs are off by default, on only in development and in the public demo.
+- **Known trade-offs**, written down rather than hidden: registration reveals whether an email exists; rate-limit buckets are per instance. Details in [docs/DESIGN.md](docs/DESIGN.md#security-design).
 
-cd frontend
-npm run lint           # ESLint (angular-eslint)
-npm test               # Jest unit tests
-npm run build          # production build
+## Deployment
 
-# End-to-end, against the running stack (docker compose up)
-cd e2e
-npm ci && npx playwright install chromium
-npx playwright test    # register → group → event → waitlist → live promotion + email
-```
+- **Live demo**: [Render](https://render.com) free tier ([`render.yaml`](render.yaml)) + [Neon](https://neon.com) PostgreSQL. One container serves the Angular app from Spring Boot, so app, API and WebSocket stay on one origin. Startup on Render's 0.1 CPU went from 257 s to 102 s (extracted jar, AppCDS, C1-only JIT); Render redeploys only when the image's inputs change. Emails are logged instead of sent. Setup: [deploy/render/README.md](deploy/render/README.md).
+- **Production-like**: [`infra/`](infra/) is Terraform for Azure Container Apps (nginx public, backend on an internal ingress) and PostgreSQL Flexible Server with `sslmode=verify-full`. It is written and validated in CI, never applied; its open gaps are under [Next steps](#next-steps).
+- **Images**: every push to `main` publishes the backend and frontend images to GitHub Container Registry, tagged `latest` and `sha-<commit>`.
 
-| Suite | What it covers |
-|-------|----------------|
-| Backend unit (`*Test`, 123) | services with mocked repositories: business rules, permissions, edge cases |
-| Backend integration (`*IT`, 187) | the real API through the security filters, on PostgreSQL (Testcontainers): access matrix, concurrency, locks, emails (GreenMail), Discord (WireMock), WebSocket clients |
-| Frontend (Jest) | components, services, validators, interceptors, i18n keys |
-| End-to-end (Playwright) | the main flow with two users in two browsers, against the whole stack |
+## Engineering notes
 
-The tests that guard a rule (no overbooking, exactly-once emails, lock timeout, access checks) were each checked by removing the guard and watching the test fail.
+What building this taught me:
 
-### Continuous integration
-
-Six GitHub Actions workflows ([`.github/workflows`](.github/workflows)), each triggered only by the folders it covers (secret scanning covers everything):
-
-- **Backend**: `./mvnw verify` with Testcontainers (Docker is available on the runners).
-- **Frontend**: lint, Jest, production build (fails over the bundle budget).
-- **E2E**: `docker compose up --wait`, then Playwright with Chromium; traces and screenshots are uploaded when it fails.
-- **Docker images**: built on every pull request, pushed to GitHub Container Registry from `main`, tagged `latest` and `sha-<commit>`.
-- **Infrastructure**: `terraform fmt -check` and `terraform validate`.
-- **Secrets**: gitleaks on the commits of every push and pull request, the whole history on demand. Reviewed false positives are listed, with the reason, in [`.gitleaksignore`](.gitleaksignore).
-
-## Deployment on Azure (Terraform)
-
-[`infra/`](infra/) describes a production-like deployment: Azure Container Apps (nginx public, backend on an internal ingress, one replica because broker and rate limits are in memory), PostgreSQL 17 Flexible Server, Log Analytics, secrets as Container Apps secrets. It is **written and validated in CI, never applied**. Design choices, the known gap (private networking) and how to run it are in [infra/README.md](infra/README.md).
+- **Let the database guarantee what it can.** A `SELECT … FOR UPDATE` on the slot row makes overbooking impossible; the same concurrency test without it confirms 10 people for 3 seats. Checks in application code alone are a race.
+- **Don't send side effects from inside a transaction.** An email sent before a rollback can't be unsent. Domain events handled after the commit keep services unaware of email, WebSocket and Discord.
+- **A test you haven't seen fail proves little.** With the cross-tab lock removed, four of its five unit tests still passed; they now also check that the second tab waits.
+- **Measure before optimizing.** The slow cold start wasn't the database: it was Hibernate validating every repository query on a cold JVM. Lazy initialization made the "Started" log line faster but not the first response, so it was dropped; class-data sharing and a cheaper JIT were kept.
+- **Error messages can leak secrets.** A validation failure on the JWT secret printed its value in the startup log; the check moved into code, with a failure analyzer that never echoes it.
+- **Managed services have sharp edges.** Neon's connection pooler runs in transaction mode, which silently drops session settings such as `lock_timeout` and Flyway's lock, so the demo connects to the direct endpoint.
+- **Write the trade-offs down.** The in-memory broker, per-instance rate limits and the email-enumeration choice are documented with what would replace them.
 
 ## Project structure
 
 ```
-backend/   Spring Boot API, package by feature under dev.ordonselli.aerides
-  auth/      register, login, refresh, logout, security configuration
-  user/      user entity and profile endpoint
-  group/     groups, memberships, roles, invite codes, per-group authorization (GroupSecurity)
-  game/      RAWG client and per-group game catalog
-  event/     events, slots, weekly series, paginated list with JPA Specifications
-  signup/    sign-ups, waitlist promotion, approvals (row locks against overbooking)
-  audit/     audit log written in the same transaction as each change, paginated audit page
-  stats/     group statistics: plain SQL aggregations through JdbcClient
-  realtime/  STOMP over WebSocket: authentication on CONNECT, authorization on SUBSCRIBE, token expiry, live messages
-  notification/  emails (Thymeleaf, IT/EN), reminder and retry jobs, Discord webhook
-  demo/      demo data seeder (dev and demo profiles), Render demo configuration
-  common/    error handling (ProblemDetail), rate limiting, validation, OpenAPI, cache, clock
-frontend/  Angular app
-  core/      auth (service, interceptor, guards), HTTP error handling, i18n, layout, realtime (STOMP client)
-  shared/    reusable validators, components (empty state, error state, confirm dialog) and page models
-  features/  one folder per feature, lazy-loaded (auth, home, groups, games, events, stats, audit)
-e2e/       Playwright end-to-end tests, run against the whole stack
-infra/     Terraform for Azure (written and validated, never applied)
-deploy/    Render demo image (one container: Angular served by Spring Boot)
-.github/   CI workflows
+backend/    Spring Boot API, package by feature: auth, user, group, game, event, signup,
+            audit, stats, realtime, notification, demo, common
+frontend/   Angular app: core (auth, HTTP, i18n, layout, realtime), shared, features (lazy-loaded)
+e2e/        Playwright tests against the whole stack
+infra/      Terraform for Azure (validated, never applied)
+deploy/     Render demo image (Angular served by Spring Boot)
+wake-page/  static page on GitHub Pages that wakes the demo up
+docs/       SPEC (scope, business rules), DESIGN (how and why), demo accounts, screenshots
 ```
 
-## Security design
+## Next steps
 
-- **Access token**: short-lived JWT (15 min, HS256) sent in the `Authorization: Bearer` header and validated by Spring Security's OAuth2 resource server. The frontend keeps it in memory only, never in `localStorage`.
-- **Refresh token**: a random 256-bit value in an `HttpOnly`, `Secure`, `SameSite=Strict` cookie, valid only for `/api/auth`. The database stores only its SHA-256 hash.
-- **Rotation and reuse detection**: every refresh revokes the old token and issues a new one. If a revoked token is presented again, it was stolen and replayed, so all of the user's sessions are revoked.
-- **Errors**: every error is an RFC 9457 `ProblemDetail` JSON body, including 401 and 403 responses raised by the security filters.
-- **Passwords**: hashed with BCrypt, between 8 and 72 characters (BCrypt ignores anything after 72 bytes).
-- **No user enumeration through login timing**: login always runs one BCrypt comparison, against a dummy hash created at startup with the same encoder when the email is unknown. Both cases take the same time and return the same "Invalid email or password" message.
-- **Rate limiting** (Bucket4j, token bucket): `POST /api/auth/login` allows 5 attempts per minute per IP + email, 20 per minute per IP, and 20 per 15 minutes per account whatever the IP (against distributed attacks on one account); `POST /api/auth/refresh` allows 20 per minute per IP. IPv6 clients are grouped by /64 network, since one client usually controls a whole /64. Going over the limit returns `429 Too Many Requests` with a `ProblemDetail` body and a `Retry-After` header. The limits are configurable (`aerides.rate-limit.*`, see `.env.example`).
-  - The buckets live **in memory**, in a bounded Caffeine cache, so each backend instance counts on its own, and a flood of distinct keys can push old buckets out of the cache. A production deployment would move this to a shared store (Redis via Bucket4j's distributed backends) or to the API gateway / ingress.
-  - The per-account limit is deliberately looser than the per-IP ones: whoever can trigger it can also block the real user from logging in for a while. Strict lockouts trade brute-force protection for that denial-of-service risk.
-  - The client IP comes from `X-Forwarded-For`, which Spring trusts only when it's set by a proxy on a private network. nginx **overwrites** that header with the real client address, so a client can't fake a new IP on every request. Locally the backend port is published on `127.0.0.1` only. In production the backend must not be publicly reachable, and `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` should list only the real edge proxy (e.g. Azure ingress), which is the one setting the header.
-- **WebSocket**: browsers can't send an `Authorization` header with the WebSocket handshake, so `/ws` itself is public and the checks happen on the STOMP frames. `CONNECT` must carry a valid access token (same validation as the REST API); `SUBSCRIBE` is allowed only to the user's own notification queue and to events they could read over REST (members of the group, drafts for officers only); `SEND` is never allowed, every change goes through the REST API. A refused frame gets an `ERROR` and the connection is closed. The handshake is limited to the configured origins.
-  - **Losing access closes the socket**: a subscription is authorized once, on `SUBSCRIBE`. When a member is removed, leaves, or is demoted from officer to member (so they can't read drafts any more), `MembershipService` publishes a `GroupAccessRevokedEvent`. After the commit, `RevokedAccessListener` sends an `ERROR` ("Access revoked") to every open session of that user, and Spring closes them; closing a session removes all its subscriptions from the broker. The client reconnects on its own and every subscription is authorized again with the current role. Closing the whole session instead of single subscriptions is simpler and can't miss one; the cost is a short reconnect in the user's other groups. The event page reloads on "Access revoked": the REST call fails, so it stops watching the event and doesn't retry a subscription the server would refuse. Deleting a group needs nothing: its events are deleted too, so their topics never receive another message. Covered by `WebSocketIT` (remove, leave, demote).
-  - **Sessions expire with their token**: the token is checked on `CONNECT`, and its `exp` is kept per session (`TokenExpiryRegistry`). After it, `SUBSCRIBE` is refused with "Authentication required", and a job (`ExpiredSessionSweeper`, every minute) closes the sessions that outlived their token. The frontend already treats that error as "refresh and reconnect", so a logged-in user just gets a new session, while a socket opened with a stolen token, or by a session revoked elsewhere, stops receiving messages at most a minute after the token expires. The registry is in memory, like the broker (one backend instance). Covered by `WebSocketIT` and `StompAuthInterceptorTest`.
-- **Refresh from several tabs**: every tab keeps its access token in memory, but they share the refresh cookie. Two tabs refreshing at the same moment (the browser restoring them at startup) would send the same refresh token, and reuse detection would log the user out everywhere. The frontend serializes refreshes across tabs with the Web Locks API (`CrossTabRefresh`): the tab holding the lock refreshes and sends the new access token to the others over a `BroadcastChannel`; a tab that waited reuses it, or refreshes itself with the already-rotated cookie if the message is late. Reuse detection stays strict. Without Web Locks (old browsers, plain-HTTP pages) each tab refreshes on its own, as before. Covered by `cross-tab-refresh.spec.ts` and the two-tab Playwright test `multi-tab-refresh.spec.ts`.
-- **API docs only where they are wanted**: springdoc (`/v3/api-docs`, `/swagger-ui.html`) is off by default and turned on by the `dev` and `demo` profiles and by docker compose (`API_DOCS_ENABLED`), so a new deployment doesn't publish the API map by accident. The live demo keeps them on for reviewers ([Swagger UI](https://aerides.onrender.com/swagger-ui.html)): the spec grants nothing, every endpoint stays default-deny, and the Angular bundle already lists the same URLs. Covered by `ApiDocsDisabledIT` and `DemoProfileSecurityIT`.
-- **Input bounds**: passwords are limited in **bytes** as well as characters (`@MaxUtf8Bytes(72)`), because BCrypt rejects anything over 72 bytes and `é` is one character but two bytes. Login fields have maximum sizes, because the email becomes part of a rate-limit key held in memory.
+All six milestones of the [original plan](docs/SPEC.md#milestones) are done. Deliberately left out:
 
-### Group access rules
+- **Azure hardening**: a virtual network to close PostgreSQL's public endpoint, and Flyway in a separate Container Apps job so the running app never holds the schema owner's password ([infra/README.md](infra/README.md)).
+- **Horizontal scaling**: rate-limit buckets in Redis and a STOMP broker relay (RabbitMQ); both are in memory today, so the backend runs as one instance.
+- **"Recognized device" cookie**: let known devices skip the per-account login limit, so an attacker can't lock the real user out for 15 minutes.
+- **Product**: edit a whole weekly series at once, per-user time zones in emails, no-show tracking for real attendance, ownership transfer.
+- **Frontend**: load FullCalendar's CSS (~30 kB) with its deferred chunk instead of globally.
 
-Every group-scoped endpoint is protected with `@PreAuthorize("@groupSecurity.hasRole(#groupId, '...')")`:
+---
 
-| Action | Member | Officer | Owner |
-|---|:---:|:---:|:---:|
-| See the group, its members and games | ✓ | ✓ | ✓ |
-| Edit name and description, add/remove games | | ✓ | ✓ |
-| See the invite code | | ✓ | ✓ |
-| Change roles, remove members, regenerate the invite code, set the Discord webhook, delete the group | | | ✓ |
-| See published events, sign up, withdraw | ✓ | ✓ | ✓ |
-| See drafts; create, edit, publish, cancel, complete events; approve or reject sign-ups | | ✓ | ✓ |
-| See the group statistics | ✓ | ✓ | ✓ |
-| Read the audit log | | ✓ | ✓ |
-
-- **Non-members get 404, not 403**: the API doesn't even confirm that the group exists. Members without the required role get 403.
-- Services still load the caller's membership, and every group-owned lookup filters by group id (`findByIdAndGroupId`), so an id from another group is never found even if a check were forgotten.
-- The whole matrix is covered by `GroupAccessIT` and `EventAccessIT` (every endpoint × outsider, member, officer, owner), plus tests that reach another group's event, slot, sign-up or game through this group's URL.
-- The Discord webhook URL is a secret: only the owner can read it, it never appears in the audit log, and only `https://discord.com/api/webhooks/...` URLs are accepted, so the server can't be pointed at internal addresses (SSRF).
-- The owner can't leave the group or change their own role; ownership transfer isn't supported yet.
-
-### Known trade-off: registration reveals whether an email exists
-
-`POST /api/auth/register` answers `409 Conflict` when the email is already registered, so someone could check whether an address has an account. This is a deliberate choice. Hiding it properly would mean an email-verification flow: always answer "check your inbox" and send either a confirmation link or an "you already have an account" email. That costs extra work and makes signing up clumsier, which isn't justified for this app's data. The impact is limited by the fact that you can only *check* addresses, not list them, and the endpoint can be rate-limited the same way as login if it ever becomes a problem.
-
-## Events and sign-ups
-
-- **No overbooking under concurrency** (business rule 4): a sign-up locks its slot row with `SELECT ... FOR UPDATE` (`@Lock(PESSIMISTIC_WRITE)`) before counting the confirmed seats, so parallel requests for the same slot run one after the other. `SignupConcurrencyIT` fires 20 parallel sign-ups at a 3-seat slot and checks that exactly 3 are confirmed and every position is unique; without the lock the same test ends with 10 confirmed. Withdraw, approve and capacity changes take the same lock, and the sign-up row is read only after it, so its status is current.
-- **Lock timeout**: every database connection runs with `lock_timeout = 5s` (Hikari `connection-init-sql`, `DB_LOCK_TIMEOUT`). A transaction stuck while holding a slot lock no longer makes the requests behind it wait forever: they fail with `503` and `Retry-After: 1`, and since they were rolled back, retrying is safe. `SignupLockTimeoutIT` holds a slot lock from another thread and checks that the sign-up fails fast; without the timeout the same test waits for the lock and gets `201`.
-- **One active sign-up per user per event** is enforced by a partial unique index in PostgreSQL, which also covers two parallel requests for *different* slots (they don't share a lock).
-- **Members who leave or are removed** give up their sign-ups on upcoming published events, in the same transaction that deletes the membership, and their seats go to the waitlist. `MembershipService` publishes a `MembershipEndedEvent`, and `SignupService` handles it with a plain (synchronous) `@EventListener`, so the `group` package doesn't depend on `signup`. The withdrawal deadline doesn't apply (a non-member can't keep a seat), while sign-ups on events that already started stay, because they are attendance history.
-- **Waitlist**: a full slot puts the user on the waitlist, in FIFO order by `position`. When a confirmed user withdraws, or an officer adds seats, the first waitlisted users are promoted in the same transaction, and a `SignupPromotedEvent` is published (see [Real-time and notifications](#real-time-and-notifications)).
-- **Withdrawal deadline** (rule 5): confirmed users can't withdraw after `startsAt - withdrawDeadlineHours`. Waitlisted and pending users hold no seat, so they can always leave.
-- **Editing safely**: the client sends back the `version` it loaded, and the update is refused with 409 if the event changed in the meantime. Every update also forces a version increment, so slot-only changes are covered too. Capacity can't go below the confirmed participants, and a slot with active sign-ups can't be removed.
-- **Weekly series**: a series is stored as real events sharing a `series_id`, because sign-ups, reminders and statistics all need real rows. Weeks are added in the organizer's time zone, so "Thursday 21:00 in Rome" stays at 21:00 after the daylight saving change. Editing or cancelling acts on one occurrence.
-- **Calendar**: FullCalendar (MIT packages only) is loaded with `@defer`, in its own chunk, only when the calendar view is opened; it asks the API only for the visible date range.
-
-## Real-time and notifications
-
-Services publish domain events (`EventChangedEvent`, `SignupPromotedEvent`, `EventPublishedEvent`, `EventAlmostFullEvent`) inside their transaction. Listeners react with `@TransactionalEventListener`, i.e. **only after the commit**: nobody is told about a change that was rolled back. Services don't know about WebSocket, email or Discord.
-
-- **Live updates** (STOMP over WebSocket, in-memory broker): every change to an event or its sign-ups sends `{eventId, type}` on `/topic/events/{id}`, and the open pages reload the event over REST. The message carries no data on purpose: the event detail differs per user (their own sign-up, their permissions), so one shared copy wouldn't fit everyone, and REST stays the single source of truth. A promoted user also gets a personal message on `/user/queue/notifications`, shown as a toast.
-- **Promotion email** (rule 3): sent `@Async` after the commit, so the user who withdrew doesn't wait for the SMTP server. Written in the recipient's language (Thymeleaf templates + `messages_*.properties`).
-- **Reminders exactly once** (rule 7): a job runs every 5 minutes and emails the confirmed participants of published events starting within 24 hours. "Exactly once" is guaranteed by PostgreSQL, not by timing: each email first inserts a `notifications` row with `ON CONFLICT (user_id, dedup_key) DO NOTHING`, and only the run that inserted it sends the email. `NotificationIT` runs the job twice in parallel and checks there is one email; without the check it gets two.
-- **Failed emails are retried** (`FailedNotificationRetrier`, every 10 minutes, 3 attempts in total). A retry first claims the row with one atomic `UPDATE ... WHERE status = 'FAILED'`, so two runs never retry the same email twice (`FailedNotificationRetryIT` runs two in parallel). An email is retried only while it is still useful: the event is published and hasn't started, and the user still has a confirmed seat; otherwise it becomes `ABANDONED`. The trade-off: if the mail server accepted the message but the reply timed out, the retry is a duplicate; a rare duplicate before the event is better than a reminder that never arrives.
-- **Discord** (rule 9): if the group has a webhook, a message is posted when an event is published and when a sign-up leaves exactly one free seat. It runs in the background and every error is logged and swallowed, so Discord being down never breaks the main flow. Mentions are disabled (`allowed_mentions`), so an event called "@everyone" pings nobody, and the webhook URL (a secret) is never logged.
-- **A bounded pool for `@Async`** (`AsyncConfig`): emails and Discord messages run on their own pool (`notify-*` threads, 2 to 4 threads, a queue of 100, set in `aerides.async.*`). Without it, Spring Boot's executor backs off because the WebSocket broker registers executors of its own, and Spring starts a new thread for every task. When the pool and queue are full, the request thread sends the message itself (slower, but nothing is lost; rejecting would turn a request that already committed into a 500). On shutdown, queued tasks get 20 seconds to finish. `AsyncConfigTest` runs the real listeners next to extra executors and checks the thread they run on. Scheduled jobs have their own two-thread scheduler (`SchedulingConfig`, `jobs-*`) for the same reason: otherwise they would run on the broker's heartbeat scheduler, the only one left, and a reminder run waiting on the mail server would delay the heartbeats (`SchedulingConfigTest`).
-- **Trade-offs**: the in-memory broker works for a single backend instance; with more, a broker relay (RabbitMQ) would be needed. Emails use one time zone for everyone (`APP_TIME_ZONE`), because users don't have their own yet.
-
-## Statistics and audit log
-
-- **`GET /api/groups/{id}/stats?from&to&zone`** (any member): attendance per member, events per month, most unfilled roles. Default period: the last 12 months; at most 36.
-  - **Attendance** = confirmed seats on **completed** events ÷ completed events **since the member joined**. Nobody looks absent from raids held before they joined. There is no no-show tracking yet, so a confirmed seat on a completed event counts as present; withdrawals are shown next to it.
-  - **Unfilled roles** = capacity − confirmed seats on completed events, grouped by role name ignoring case and spaces (role names are free text per event).
-  - **Months follow the user's time zone** (`zone`, an IANA id the browser sends): an event at 00:30 on 1 November in Rome is still 31 October in UTC. Empty months are filled in by the service, so the chart axis has no gaps.
-  - The queries are plain SQL with `JdbcClient` (`StatsRepository`), not JPA: they return numbers, not entities, and one `GROUP BY` is clearer and faster than loading rows to count them in Java. `StatsIT` runs them on PostgreSQL against a small data set whose every number is known.
-- **`GET /api/groups/{id}/audit?action&page&size`** (officer and owner): the log, newest first. The client can choose page and size but not the order. Actor names are loaded with one query per page (no N+1); entries of a deleted user stay, without a name.
-- **Frontend**: Chart.js is registered on the stats route, so it is downloaded only by whoever opens the page (its own ~160 kB chunk; the initial bundle didn't grow). The Material paginator labels are translated too (`TranslatedPaginatorIntl`), provided on the lazy routes for the same reason.
-- **i18n check**: `translations.spec.ts` fails if Italian and English have different keys, or if a key written in the code (or built from an enum, like `audit.actions.*`) is missing.
-
-## Configuration
-
-Everything that changes between environments comes from environment variables. See [`.env.example`](.env.example). Secrets have no default value, and the backend refuses to start if `JWT_SECRET` is missing or shorter than 32 bytes (HS256's minimum), with a message that says what to do and never prints the value.
-
-## Roadmap
-
-- [x] **1. Foundation**: monorepo, database schema (Flyway), authentication with JWT + refresh-token rotation, error handling, Swagger, Angular shell with login and register
-- [x] **2. Groups and games**: group CRUD, invite codes, member roles, audit log, RAWG game catalog
-- [x] **3. Events and sign-ups**: slots, waitlist promotion, concurrency-safe sign-ups, recurrence, calendar
-- [x] **4. Real-time and notifications**: WebSocket updates, reminder emails, Discord webhooks
-- [x] **5. Dashboard and polish**: statistics, audit log page, i18n check, responsive layout, error states
-- [x] **6. Quality and delivery**: Playwright e2e, GitHub Actions, Terraform for Azure, demo data seeder, backlog items (sign-ups of removed members, lock timeout, email retries, WebSocket token expiry)
-
-### Future work
-
-Improvements that are not bugs, deliberately left out. Milestone 6 closed the other backlog items: sign-ups of removed members, lock timeout, retry of failed emails, WebSocket sessions that expire with their token.
-
-- **"Recognized device" cookie**: after a successful login, set a long-lived signed cookie. Logins from a recognized device skip the per-account rate limit, so an attacker who hits it can't lock the real user out. Today the lockout lasts at most 15 minutes (see [Security design](#security-design)). Left out because authentication was frozen after Milestone 1's reviews.
-- **Shared rate-limit store**: move Bucket4j buckets to Redis (or to the gateway), so limits hold across instances and can't be reset by evicting entries from the in-memory cache. Needed only with more than one backend instance, together with a broker relay for WebSocket.
-- **Azure: private network and a migration job**: the Terraform deployment (`infra/`) is not production-ready on two points. PostgreSQL has a public endpoint, which needs a virtual network to close. Flyway runs inside the backend, so the container holds the schema owner's password even though the connection pool uses a rows-only role; the migrations belong in a separate Container Apps job. Details in [infra/README.md](infra/README.md).
-- **Edit a whole weekly series**: today editing and cancelling act on one occurrence at a time.
-- **Per-user time zone**: emails write dates in `APP_TIME_ZONE`; users could store their own zone, like their language.
-- **Real attendance**: let officers mark no-shows when completing an event; attendance would then count people who actually came, not confirmed seats.
-- **Calendar styles out of the initial bundle**: FullCalendar's CSS (~30 kB) is a global stylesheet; it could be loaded together with the deferred calendar chunk.
+*About the name: the Tower of the Winds in Athens, the* Aerides, *showed the winds and the time of day: the place to know when to gather.*

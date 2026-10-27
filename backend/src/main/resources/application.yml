@@ -48,6 +48,11 @@ spring:
       spec: maximumSize=500,expireAfterWrite=10m
 
 raidboard:
+  database:
+    # Only with a separate Flyway user (AppRoleProvisioner): false sends the application role's password in clear
+    # text over TLS, for hosts that refuse pre-hashed passwords (Neon)
+    hash-app-password: ${DB_HASH_APP_PASSWORD:true}
+
   security:
     jwt-secret: ${JWT_SECRET}
     issuer: raidboard

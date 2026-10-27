@@ -28,8 +28,7 @@ USER raidboard
 COPY --from=build /workspace/target/raidboard-*.jar app.jar
 ENV SPRING_PROFILES_ACTIVE=demo
 EXPOSE 8080
-# Render gives the database as postgresql://user:password@host/db. JDBC wants jdbc:postgresql://host/db,
-# with user and password apart (they come in DB_USERNAME and DB_PASSWORD): drop everything up to the "@".
+# The database comes in DB_URL (already a JDBC URL), DB_USERNAME and DB_PASSWORD, as everywhere else.
 # The free instance has 512 MB: a smaller heap share leaves room for metaspace and threads,
 # and the serial GC has the lowest memory overhead on a single CPU.
-ENTRYPOINT ["sh", "-c", "export DB_URL=\"jdbc:postgresql://${DATABASE_URL##*@}\" && exec java -XX:MaxRAMPercentage=60 -XX:+UseSerialGC -jar /app/app.jar"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=60", "-XX:+UseSerialGC", "-jar", "/app/app.jar"]

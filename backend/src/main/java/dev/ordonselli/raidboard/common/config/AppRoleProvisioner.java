@@ -24,7 +24,11 @@ import org.springframework.stereotype.Component;
  * After each run the role can SELECT, INSERT, UPDATE and DELETE on the application's tables and nothing else:
  * no DDL, and no access to Flyway's history table. A SQL injection through the application can't drop a table
  * or fake a migration. Granting again on every start covers the tables that a new migration creates.
- * Without a separate Flyway user (docker compose, Render, tests) the callback doesn't exist and one user does both.
+ * Without a separate Flyway user (docker compose, tests) the callback doesn't exist and one user does both.
+ * <p>
+ * The password is hashed by the driver (SCRAM) by default, so it never travels or gets logged in clear text.
+ * Some hosted PostgreSQL services (Neon) accept only clear-text passwords, to check their strength:
+ * {@code DB_HASH_APP_PASSWORD=false} sends it in clear text, over the TLS connection.
  */
 @Component
 @ConditionalOnProperty("spring.flyway.user")
@@ -36,10 +40,12 @@ public class AppRoleProvisioner implements Callback {
 
     private final String role;
     private final String password;
+    private final boolean hashPassword;
 
     public AppRoleProvisioner(@Value("${spring.flyway.user}") String owner,
                               @Value("${spring.datasource.username}") String role,
-                              @Value("${spring.datasource.password}") String password) {
+                              @Value("${spring.datasource.password}") String password,
+                              @Value("${raidboard.database.hash-app-password:true}") boolean hashPassword) {
         if (!ROLE_NAME.matcher(role).matches()) {
             throw new IllegalArgumentException("Database user must be lowercase letters, digits and _: " + role);
         }
@@ -49,6 +55,7 @@ public class AppRoleProvisioner implements Callback {
         }
         this.role = role;
         this.password = password;
+        this.hashPassword = hashPassword;
     }
 
     @Override
@@ -69,9 +76,8 @@ public class AppRoleProvisioner implements Callback {
             if (!roleExists(connection)) {
                 statement.execute("CREATE ROLE \"%s\" LOGIN".formatted(role));
             }
-            // Hashed by the driver (SCRAM): the password never travels or gets logged in clear text.
-            // Set on every start, so changing the secret and restarting is enough to rotate it.
-            connection.unwrap(PGConnection.class).alterUserPassword(role, password.toCharArray(), "scram-sha-256");
+            // Set on every start, so changing the secret and restarting is enough to rotate it
+            setPassword(connection);
             statement.execute("GRANT USAGE ON SCHEMA %s TO \"%s\"".formatted(SCHEMA, role));
             statement.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA %s TO \"%s\""
                     .formatted(SCHEMA, role));
@@ -85,6 +91,26 @@ public class AppRoleProvisioner implements Callback {
     @Override
     public String getCallbackName() {
         return "appRoleProvisioner";
+    }
+
+    private void setPassword(Connection connection) throws SQLException {
+        if (hashPassword) {
+            connection.unwrap(PGConnection.class).alterUserPassword(role, password.toCharArray(), "scram-sha-256");
+            return;
+        }
+        // A password can't be a bind parameter in ALTER ROLE: format() lets the server quote it as a literal
+        String alterRole;
+        try (PreparedStatement query = connection.prepareStatement("SELECT format('ALTER ROLE %I PASSWORD %L', ?, ?)")) {
+            query.setString(1, role);
+            query.setString(2, password);
+            try (ResultSet result = query.executeQuery()) {
+                result.next();
+                alterRole = result.getString(1);
+            }
+        }
+        try (Statement statement = connection.createStatement()) {
+            statement.execute(alterRole);
+        }
     }
 
     private boolean roleExists(Connection connection) throws SQLException {

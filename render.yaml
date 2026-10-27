@@ -1,32 +1,37 @@
-# Render Blueprint for the free public demo: one web service (app + API + WebSocket) and a free
-# PostgreSQL database. Render dashboard > New > Blueprint > pick this repository.
-# The free database expires after 30 days. Demo data is created at the first startup (DemoDataSeeder).
-# The production-like deployment is described in infra/ (Terraform for Azure).
+# Render Blueprint for the free public demo: one web service (app + API + WebSocket).
+# Render dashboard > New > Blueprint > pick this repository. Setup steps: deploy/render/README.md.
+# The database is a free Neon PostgreSQL, created by hand: Render's free database is deleted after 30 days
+# (plus a 14-day grace period), Neon's free tier doesn't expire. Demo data is created at the first startup
+# (DemoDataSeeder). The production-like deployment is described in infra/ (Terraform for Azure).
 services:
   - type: web
     name: raidboard
     runtime: docker
     plan: free
-    region: frankfurt
+    region: frankfurt # next to Neon's AWS eu-central-1
     dockerfilePath: ./deploy/render/Dockerfile
     dockerContext: .
     healthCheckPath: /actuator/health/readiness
     envVars:
       - key: JWT_SECRET
         generateValue: true # random 256-bit value, generated once by Render
-      # postgresql://user:password@host/db, turned into a JDBC URL by the image's entrypoint
-      - key: DATABASE_URL
-        fromDatabase: { name: raidboard-db, property: connectionString }
+      # Neon's DIRECT endpoint (no "-pooler"): its pooler runs in transaction mode, which drops the session's
+      # SET lock_timeout and Flyway's session lock. TLS verified against the JRE's CA store (ISRG Root X1).
+      # jdbc:postgresql://<host>/neondb?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory
+      - key: DB_URL
+        sync: false
+      # The connection pool: a role with rows only, created by Flyway at startup (AppRoleProvisioner)
       - key: DB_USERNAME
-        fromDatabase: { name: raidboard-db, property: user }
+        value: raidboard_app
       - key: DB_PASSWORD
-        fromDatabase: { name: raidboard-db, property: password }
+        sync: false
+      # Flyway: Neon's owner role, owner of the schema
+      - key: SPRING_FLYWAY_USER
+        value: neondb_owner
+      - key: SPRING_FLYWAY_PASSWORD
+        sync: false
+      # Neon accepts only clear-text passwords in ALTER ROLE (to check their strength); sent over TLS
+      - key: DB_HASH_APP_PASSWORD
+        value: "false"
       - key: RAWG_API_KEY
         sync: false # optional: set it in the dashboard to enable game search
-
-databases:
-  - name: raidboard-db
-    plan: free
-    region: frankfurt
-    databaseName: raidboard
-    postgresMajorVersion: "17"

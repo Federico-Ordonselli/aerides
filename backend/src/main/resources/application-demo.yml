@@ -1,6 +1,6 @@
 # Free public demo on Render (see render.yaml): one web service serves the app, the API and the
 # WebSocket, emails are only logged. Render provides PORT and RENDER_EXTERNAL_URL at runtime.
-# The database comes in DB_URL, DB_USERNAME and DB_PASSWORD as everywhere else (see deploy/render/Dockerfile).
+# The database comes in DB_URL, DB_USERNAME and DB_PASSWORD as everywhere else (a Neon database, see render.yaml).
 server:
   port: ${PORT:8080}
 

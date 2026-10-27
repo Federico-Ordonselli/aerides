@@ -19,7 +19,7 @@ Under the hood it is a **resource-booking business application**: roles, approva
 | Backend  | Java 21, Spring Boot 4.1, Spring Security (JWT resource server), Spring Data JPA / Hibernate 7, PostgreSQL 17, Flyway, MapStruct, Bucket4j, springdoc-openapi |
 | Frontend | Angular 22 (standalone components, signals, zoneless), Angular Material 3, RxJS, STOMP (rx-stomp), FullCalendar, Chart.js via ng2-charts, ngx-translate (IT/EN) |
 | Testing  | JUnit 5, Mockito, Testcontainers, MockMvc, WireMock, GreenMail, Awaitility, Jest, Playwright |
-| DevOps   | Docker, Docker Compose, nginx, GitHub Actions, GitHub Container Registry, Terraform (Azure Container Apps + PostgreSQL Flexible Server), Render (demo), Mailpit |
+| DevOps   | Docker, Docker Compose, nginx, GitHub Actions, GitHub Container Registry, Terraform (Azure Container Apps + PostgreSQL Flexible Server), Render + Neon (demo), Mailpit |
 
 ## Architecture
 
@@ -90,14 +90,14 @@ docker compose up --build
 ## Live demo
 
 > **URL: _pending first deploy_** · demo users `giulia@example.com` (owner), `marco@example.com` (officer), `luca@example.com` (member), password `raidboard-demo`.
-> Free hosting: the first request after 15 idle minutes takes about a minute while the service wakes up.
+> ⏳ **Cold start**: the free instance sleeps after 15 minutes of inactivity, so the first request can take about a minute. After that it's fast.
 > Try it: log in as Luca in one browser and open "Raid: Vault of Glass", then as Giulia in another browser withdraw from the Tank slot: Luca is promoted and sees it live.
 
 The demo runs on [Render](https://render.com)'s free tier, from [`render.yaml`](render.yaml). It's a quick, free way to show the app; the production-like deployment is the [Azure Terraform configuration](#deployment-on-azure-terraform).
 
 - **One service instead of two**: free Render services can't receive private-network traffic, so the usual nginx-in-front-of-the-backend layout would need two public services. Instead, [`deploy/render/Dockerfile`](deploy/render/Dockerfile) builds the Angular app into the backend's `static/` folder, and the `demo` Spring profile serves it (`SinglePageAppConfig`). App, API and WebSocket keep one origin, so the `SameSite=Strict` refresh cookie and `/ws` work exactly as behind nginx. Static files and Angular routes get their own public security chain (GET only, outside `/api`, `/ws`, `/actuator`); everything else still goes through the normal default-deny chain.
 - **No emails**: the free tier blocks SMTP ports, and a public demo shouldn't email addresses people type in. In the `demo` profile `LoggingMailSender` writes a log line instead of sending; templates, the `notifications` table and the exactly-once reminder logic run as usual.
-- **Database**: Render's free PostgreSQL, which expires after 30 days. Render gives a `postgresql://user:password@host/db` connection string; the image's entrypoint turns it into a JDBC URL.
+- **Database**: a free [Neon](https://neon.com) PostgreSQL in Frankfurt, because Render's free database is deleted after 30 days and the link has to keep working. Same least-privilege setup as on Azure: Flyway migrates as Neon's owner role, the connection pool uses the rows-only `raidboard_app` role. It uses the direct endpoint (Neon's pooler is in transaction mode, which would drop the session's `lock_timeout` and Flyway's lock) and `sslmode=verify-full`. Setup steps: [deploy/render/README.md](deploy/render/README.md).
 - **Demo data**: `DemoDataSeeder` (profiles `dev` and `demo`) creates the users, group and events above at the first startup, through the real services, so waitlist, approvals and audit log follow the business rules. Three past raids are moved into the past with SQL and completed, so the statistics page has numbers. It runs in one transaction, and only if the demo users don't exist yet.
 - Test the same image locally: `docker build -f deploy/render/Dockerfile -t raidboard-demo .`
 

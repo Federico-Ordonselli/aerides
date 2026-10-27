@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -85,21 +86,38 @@ class AppRoleProvisionerIT {
     }
 
     @Test
+    void clearTextModeSetsPasswordsWithQuotesSafely() throws SQLException {
+        String tricky = "it's-a-pass'; DROP TABLE users; --";
+        migrateWithAppPassword(tricky, false);
+
+        connectAsApp(tricky).close();
+        try (Connection owner = connectAsOwner(); Statement sql = owner.createStatement()) {
+            ResultSet users = sql.executeQuery("SELECT to_regclass('users') IS NOT NULL");
+            users.next();
+            assertThat(users.getBoolean(1)).as("users table still there").isTrue();
+        }
+    }
+
+    @Test
     void refusesTheOwnerAsApplicationRole() {
-        assertThatThrownBy(() -> new AppRoleProvisioner(ROLE, ROLE, PASSWORD))
+        assertThatThrownBy(() -> new AppRoleProvisioner(ROLE, ROLE, PASSWORD, true))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void refusesRoleNamesThatAreNotPlainIdentifiers() {
-        assertThatThrownBy(() -> new AppRoleProvisioner("owner", "app\" SUPERUSER --", PASSWORD))
+        assertThatThrownBy(() -> new AppRoleProvisioner("owner", "app\" SUPERUSER --", PASSWORD, true))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     private static void migrateWithAppPassword(String password) {
+        migrateWithAppPassword(password, true);
+    }
+
+    private static void migrateWithAppPassword(String password, boolean hashPassword) {
         Flyway.configure()
                 .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
-                .callbacks(new AppRoleProvisioner(postgres.getUsername(), ROLE, password))
+                .callbacks(new AppRoleProvisioner(postgres.getUsername(), ROLE, password, hashPassword))
                 .load()
                 .migrate();
     }

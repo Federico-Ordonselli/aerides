@@ -46,6 +46,7 @@ services:
       MAIL_HOST: mailpit
       MAIL_PORT: 1025
       APP_URL: ${APP_URL:-http://localhost:4200}
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-true} # Swagger UI, see ports below
     ports:
       # Published on localhost only, for Swagger UI (http://localhost:8080/swagger-ui.html).
       # Browsers go through nginx on :4200; the backend must never be publicly reachable directly.

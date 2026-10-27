@@ -132,6 +132,12 @@ management:
       probes:
         enabled: true
 
+# API docs are off unless API_DOCS_ENABLED or a profile turns them on (dev, demo and docker compose do):
+# a new deployment doesn't publish the API map by accident. The spec grants nothing, the endpoints stay
+# default-deny.
 springdoc:
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:false}
   swagger-ui:
+    enabled: ${API_DOCS_ENABLED:false}
     path: /swagger-ui.html

@@ -7,6 +7,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -46,6 +47,15 @@ class DemoProfileSecurityIT {
     void frontendPathsArePublic(String path) throws Exception {
         // No Angular build in the test classpath: a 404 (no file) proves the request got past security
         assertThat(get(path).statusCode()).isEqualTo(404);
+    }
+
+    /** The demo shows the API to reviewers: the spec, with the bearer scheme behind "Authorize", and the UI. */
+    @Test
+    void apiDocsArePublishedInTheDemo() throws Exception {
+        HttpResponse<String> spec = get("/v3/api-docs");
+        assertThat(spec.statusCode()).isEqualTo(200);
+        assertThat(spec.body()).contains("\"bearerAuth\"", "/api/groups");
+        assertThat(get("/swagger-ui/index.html").statusCode()).isEqualTo(200);
     }
 
     private HttpResponse<String> get(String path) throws Exception {

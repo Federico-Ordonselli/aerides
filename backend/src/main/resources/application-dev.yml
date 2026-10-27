@@ -9,3 +9,10 @@ spring:
 aerides:
   security:
     jwt-secret: dev-only-secret-change-me-0123456789abcdef
+
+# Swagger UI on http://localhost:8080/swagger-ui.html
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

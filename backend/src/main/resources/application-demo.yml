@@ -11,3 +11,10 @@ aerides:
     status-page-origins: ${STATUS_PAGE_ORIGINS:https://federico-ordonselli.github.io}
   notifications:
     app-url: ${APP_URL:${RENDER_EXTERNAL_URL}}
+
+# Swagger UI is part of the showcase: reviewers can try the API with a demo account's token
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

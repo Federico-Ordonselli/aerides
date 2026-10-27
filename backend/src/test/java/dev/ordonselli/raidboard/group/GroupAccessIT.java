@@ -80,7 +80,9 @@ class GroupAccessIT extends AbstractIntegrationTest {
             new Endpoint("POST game", t -> json(post("/api/groups/{id}/games", t.group.id()), "{\"rawgId\": 2}"),
                     404, 403, 201, 201),
             new Endpoint("DELETE game", t -> delete("/api/groups/{id}/games/{gameId}", t.group.id(), t.gameId),
-                    404, 403, 204, 204));
+                    404, 403, 204, 204),
+            new Endpoint("GET stats", t -> get("/api/groups/{id}/stats", t.group.id()), 404, 200, 200, 200),
+            new Endpoint("GET audit", t -> get("/api/groups/{id}/audit", t.group.id()), 404, 403, 200, 200));
 
     private TestUser outsider;
     private TestUser member;

@@ -1,0 +1,10 @@
+# Downloaded providers and modules
+.terraform/
+# State can contain secrets in clear text: it belongs in a remote backend, never in git
+*.tfstate
+*.tfstate.*
+# Real variable values
+terraform.tfvars
+*.auto.tfvars
+crash.log
+# The provider lock file (.terraform.lock.hcl) IS committed: everyone gets the same provider version

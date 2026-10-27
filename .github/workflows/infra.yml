@@ -1,0 +1,31 @@
+# Terraform: formatting and validation only (types, references, provider schema).
+# Nothing is ever applied from CI: the Azure configuration is written but not deployed.
+name: Infrastructure
+
+on:
+  push:
+    branches: [main]
+    paths: ["infra/**", ".github/workflows/infra.yml"]
+  pull_request:
+    paths: ["infra/**", ".github/workflows/infra.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: "~1.15"
+
+      - run: terraform fmt -check -recursive
+      # No backend and no credentials: validate doesn't talk to Azure
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate

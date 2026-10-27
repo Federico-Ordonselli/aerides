@@ -1,0 +1,22 @@
+# Copy to terraform.tfvars (ignored by git) and fill in. Never commit real values.
+subscription_id = "00000000-0000-0000-0000-000000000000"
+location        = "italynorth"
+name_prefix     = "raidboard-prod"
+
+# An exact image built by the Docker workflow, e.g. sha-<commit>
+image_tag = "latest"
+
+# openssl rand -base64 32
+postgres_admin_password = "change-me-change-me"
+# openssl rand -base64 48
+jwt_secret = "change-me-change-me-change-me-change-me"
+
+rawg_api_key = ""
+
+# smtp = {
+#   host     = "smtp.azurecomm.net"
+#   port     = 587
+#   username = "..."
+#   from     = "Raidboard <noreply@example.com>"
+# }
+# smtp_password = "..."

@@ -75,7 +75,8 @@
         </div>
 
         <div class="row">
-          <mat-form-field>
+          <!-- The hint wraps on two or three lines: a dynamic subscript grows instead of overlapping the next row -->
+          <mat-form-field subscriptSizing="dynamic">
             <mat-label>{{ 'events.fields.withdrawDeadlineHours' | translate }}</mat-label>
             <input matInput type="number" formControlName="withdrawDeadlineHours" min="0" [max]="limits.maxDeadlineHours" />
             <mat-hint>{{ 'events.form.deadlineHint' | translate }}</mat-hint>

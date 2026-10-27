@@ -15,7 +15,7 @@ resource "azurerm_postgresql_flexible_server" "main" {
   location                      = azurerm_resource_group.main.location
   resource_group_name           = azurerm_resource_group.main.name
   version                       = "17"
-  administrator_login           = "raidboard"
+  administrator_login           = "aerides"
   administrator_password        = var.postgres_admin_password
   sku_name                      = "B_Standard_B1ms" # burstable, the cheapest tier: enough for one small group
   storage_mb                    = 32768
@@ -29,8 +29,8 @@ resource "azurerm_postgresql_flexible_server" "main" {
   }
 }
 
-resource "azurerm_postgresql_flexible_server_database" "raidboard" {
-  name      = "raidboard"
+resource "azurerm_postgresql_flexible_server_database" "aerides" {
+  name      = "aerides"
   server_id = azurerm_postgresql_flexible_server.main.id
   charset   = "UTF8"
   collation = "en_US.utf8"

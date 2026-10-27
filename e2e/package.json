@@ -1,5 +1,5 @@
 {
-  "name": "raidboard-e2e",
+  "name": "aerides-e2e",
   "private": true,
   "description": "End-to-end tests: a real browser against the whole stack started with docker compose",
   "scripts": {

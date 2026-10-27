@@ -16,10 +16,10 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 # Run as an unprivileged user
-RUN addgroup -S raidboard && adduser -S raidboard -G raidboard
-USER raidboard
+RUN addgroup -S aerides && adduser -S aerides -G aerides
+USER aerides
 
-COPY --from=build /workspace/target/raidboard-*.jar app.jar
+COPY --from=build /workspace/target/aerides-*.jar app.jar
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "/app/app.jar"]

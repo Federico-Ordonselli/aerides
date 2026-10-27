@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>dev.ordonselli</groupId>
-	<artifactId>raidboard</artifactId>
+	<artifactId>aerides</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>raidboard</name>
+	<name>aerides</name>
 	<description>Multi-tenant platform to organize gaming group sessions</description>
 	<properties>
 		<java.version>21</java.version>

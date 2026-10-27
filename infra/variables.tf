@@ -10,9 +10,9 @@ variable "location" {
 }
 
 variable "name_prefix" {
-  description = "Prefix of every resource name, e.g. raidboard-prod-backend."
+  description = "Prefix of every resource name, e.g. aerides-prod-backend."
   type        = string
-  default     = "raidboard-prod"
+  default     = "aerides-prod"
 
   validation {
     condition     = can(regex("^[a-z][a-z0-9-]{2,20}$", var.name_prefix))
@@ -23,7 +23,7 @@ variable "name_prefix" {
 variable "image_repository" {
   description = "Container registry path of the images built by the Docker workflow: <repository>-backend and <repository>-frontend."
   type        = string
-  default     = "ghcr.io/federico-ordonselli/raidboard"
+  default     = "ghcr.io/federico-ordonselli/aerides"
 }
 
 variable "image_tag" {
@@ -97,7 +97,7 @@ variable "smtp" {
     host     = "localhost"
     port     = 25
     username = ""
-    from     = "Raidboard <noreply@raidboard.local>"
+    from     = "Aerides <noreply@aerides.local>"
   }
 }
 
@@ -112,7 +112,7 @@ variable "tags" {
   description = "Tags added to every resource."
   type        = map(string)
   default = {
-    project    = "raidboard"
+    project    = "aerides"
     managed-by = "terraform"
   }
 }

@@ -10,7 +10,7 @@ locals {
 
   # The backend's own database role: rows only, no DDL. Flyway creates it, as the administrator, at startup
   # (AppRoleProvisioner), so Terraform needs no connection to the database.
-  app_db_role = "raidboard_app"
+  app_db_role = "aerides_app"
 
   # Container Apps refuses empty secrets, so the optional ones exist only when set. for_each can't depend
   # on a sensitive value: nonsensitive() reveals only "set or not", never the value itself.
@@ -102,7 +102,7 @@ resource "azurerm_container_app" "backend" {
         # verify-full: encrypted AND the server certificate and host name are checked, so nobody in between
         # can pose as the database. DefaultJavaSSLFactory trusts the JRE's CA store, which has the root of
         # Azure's certificate chain (DigiCert Global Root G2): no certificate file to ship in the image.
-        value = "jdbc:postgresql://${azurerm_postgresql_flexible_server.main.fqdn}:5432/${azurerm_postgresql_flexible_server_database.raidboard.name}?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
+        value = "jdbc:postgresql://${azurerm_postgresql_flexible_server.main.fqdn}:5432/${azurerm_postgresql_flexible_server_database.aerides.name}?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
       }
       # Two database users: the connection pool uses the application role, Flyway the administrator, who
       # owns the schema. A separate Flyway user is also what turns on AppRoleProvisioner.

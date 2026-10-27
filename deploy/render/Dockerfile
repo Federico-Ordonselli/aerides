@@ -23,9 +23,9 @@ RUN ./mvnw -B -q package -DskipTests
 # --- Stage 3: runtime, only the JRE and the jar ---
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-RUN addgroup -S raidboard && adduser -S raidboard -G raidboard
-USER raidboard
-COPY --from=build /workspace/target/raidboard-*.jar app.jar
+RUN addgroup -S aerides && adduser -S aerides -G aerides
+USER aerides
+COPY --from=build /workspace/target/aerides-*.jar app.jar
 ENV SPRING_PROFILES_ACTIVE=demo
 EXPOSE 8080
 # The database comes in DB_URL (already a JDBC URL), DB_USERNAME and DB_PASSWORD, as everywhere else.

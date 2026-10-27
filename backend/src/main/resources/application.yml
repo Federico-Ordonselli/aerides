@@ -2,11 +2,11 @@
 # Defaults are only provided where they are safe for local development (never for secrets).
 spring:
   application:
-    name: raidboard
+    name: aerides
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/raidboard}
-    username: ${DB_USERNAME:raidboard}
-    password: ${DB_PASSWORD:raidboard}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/aerides}
+    username: ${DB_USERNAME:aerides}
+    password: ${DB_PASSWORD:aerides}
     hikari:
       # PostgreSQL gives up waiting for a row lock after this long. A stuck transaction then makes the
       # requests queued behind it fail fast with a "try again" 503, instead of holding their threads forever.
@@ -47,7 +47,7 @@ spring:
     caffeine:
       spec: maximumSize=500,expireAfterWrite=10m
 
-raidboard:
+aerides:
   database:
     # Only with a separate Flyway user (AppRoleProvisioner): false sends the application role's password in clear
     # text over TLS, for hosts that refuse pre-hashed passwords (Neon)
@@ -56,7 +56,7 @@ raidboard:
   security:
     # Empty when unset, and then the application refuses to start (SecurityConfig): there is no default
     jwt-secret: ${JWT_SECRET:}
-    issuer: raidboard
+    issuer: aerides
     access-token-ttl: ${ACCESS_TOKEN_TTL:15m}
     refresh-token-ttl: ${REFRESH_TOKEN_TTL:14d}
     refresh-cookie-secure: ${REFRESH_COOKIE_SECURE:true}
@@ -71,7 +71,7 @@ raidboard:
 
   notifications:
     app-url: ${APP_URL:http://localhost:4200}
-    mail-from: ${MAIL_FROM:Raidboard <noreply@raidboard.local>}
+    mail-from: ${MAIL_FROM:Aerides <noreply@aerides.local>}
     time-zone: ${APP_TIME_ZONE:Europe/Rome}
     reminder-lead-time: 24h
     reminder-interval: ${REMINDER_INTERVAL:5m}

@@ -18,35 +18,35 @@ Both free tiers don't expire. The Render service sleeps after 15 idle minutes, N
 4. Generate a password for the application role (Neon wants at least 60 bits of entropy; this has 256):
    `openssl rand -base64 32`
 
-Don't create the `raidboard_app` role yourself: the backend creates it at its first startup.
+Don't create the `aerides_app` role yourself: the backend creates it at its first startup.
 
 ## 2. Render: the web service
 
 1. [dashboard.render.com](https://dashboard.render.com) > **New** > **Blueprint**, connect GitHub, pick this repository.
-   Render reads `render.yaml` and creates the `raidboard` web service (free, Frankfurt).
+   Render reads `render.yaml` and creates the `aerides` web service (free, Frankfurt).
 2. It asks for the variables marked `sync: false`:
 
    | Variable | Value |
    |----------|-------|
    | `DB_URL` | `jdbc:postgresql://<HOST>/neondb?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory` |
-   | `DB_PASSWORD` | the password from `openssl rand` (for `raidboard_app`) |
+   | `DB_PASSWORD` | the password from `openssl rand` (for `aerides_app`) |
    | `SPRING_FLYWAY_PASSWORD` | `<OWNER_PASSWORD>` (for `neondb_owner`) |
    | `RAWG_API_KEY` | optional, empty is fine: game search answers 503 |
 
-   Already in `render.yaml`: `DB_USERNAME=raidboard_app`, `SPRING_FLYWAY_USER=neondb_owner`, `DB_HASH_APP_PASSWORD=false`
+   Already in `render.yaml`: `DB_USERNAME=aerides_app`, `SPRING_FLYWAY_USER=neondb_owner`, `DB_HASH_APP_PASSWORD=false`
    (Neon refuses pre-hashed passwords), and a generated `JWT_SECRET`.
 3. **Apply**. The first build takes several minutes. At startup Flyway migrates as `neondb_owner`, creates
-   `raidboard_app` with rows-only rights, and `DemoDataSeeder` adds the demo users.
+   `aerides_app` with rows-only rights, and `DemoDataSeeder` adds the demo users.
 
 `sslmode=verify-full` checks the certificate and the host name. `DefaultJavaSSLFactory` makes pgjdbc use the JRE's
 CA store, which has Neon's root (ISRG Root X1, Let's Encrypt); without it pgjdbc would look for `~/.postgresql/root.crt`.
 
 ## 3. Check it
 
-- Open the `https://raidboard-….onrender.com` URL and log in as `giulia@example.com` / `raidboard-demo`.
+- Open the `https://aerides-….onrender.com` URL and log in as `giulia@example.com` / `aerides-demo`.
 - In Neon's **SQL Editor**: `SELECT usename, count(*) FROM pg_stat_activity WHERE datname = 'neondb' GROUP BY 1;`
-  shows `raidboard_app` holding the pool's connections.
-- Client IP: add `LOGGING_LEVEL_DEV_ORDONSELLI_RAIDBOARD_COMMON_WEB=DEBUG` in **Environment**, make one request, and the
+  shows `aerides_app` holding the pool's connections.
+- Client IP: add `LOGGING_LEVEL_DEV_ORDONSELLI_AERIDES_COMMON_WEB=DEBUG` in **Environment**, make one request, and the
   log line `... from <address>` should show your public IP (`curl https://ifconfig.me`). Then remove the variable.
 
 Rotating a password: change it in Render (and, for the owner, in Neon first) and redeploy. The application role's

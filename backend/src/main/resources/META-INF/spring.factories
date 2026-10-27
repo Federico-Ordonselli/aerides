@@ -1,2 +1,2 @@
 org.springframework.boot.diagnostics.FailureAnalyzer=\
-dev.ordonselli.raidboard.auth.InvalidJwtSecretFailureAnalyzer
+dev.ordonselli.aerides.auth.InvalidJwtSecretFailureAnalyzer

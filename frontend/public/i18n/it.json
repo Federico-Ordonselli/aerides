@@ -16,7 +16,7 @@
     },
     "login": {
       "title": "Accedi",
-      "subtitle": "Bentornato su Raidboard",
+      "subtitle": "Bentornato su Aerides",
       "submit": "Accedi",
       "invalidCredentials": "Email o password non validi",
       "noAccount": "Non hai un account?",

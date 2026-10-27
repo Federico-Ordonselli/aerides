@@ -1,15 +1,17 @@
-# Raidboard
+# Aerides
 
-Raidboard is a multi-tenant web app where gaming groups (guilds, clans, tabletop RPG tables) organize sessions: events with role-based slots, sign-ups, automatic waitlists, reminders and attendance stats.
+Aerides is a multi-tenant web app where gaming groups (guilds, clans, tabletop RPG tables) organize sessions: events with role-based slots, sign-ups, automatic waitlists, reminders and attendance stats.
 
 Under the hood it is a **resource-booking business application**: roles, approvals, notifications, audit log and reporting.
 
-[![Backend](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/backend.yml/badge.svg)](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/backend.yml)
-[![Frontend](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/frontend.yml/badge.svg)](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/frontend.yml)
-[![E2E](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/e2e.yml/badge.svg)](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/e2e.yml)
-[![Docker images](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/docker.yml/badge.svg)](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/docker.yml)
-[![Infrastructure](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/infra.yml/badge.svg)](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/infra.yml)
-[![Secrets](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/secrets.yml/badge.svg)](https://github.com/Federico-Ordonselli/raidboard/actions/workflows/secrets.yml)
+**About the name**: the Tower of the Winds in Athens, the *Aerides*, is a public landmark that showed the winds and the time of day: the place to know when to gather.
+
+[![Backend](https://github.com/Federico-Ordonselli/aerides/actions/workflows/backend.yml/badge.svg)](https://github.com/Federico-Ordonselli/aerides/actions/workflows/backend.yml)
+[![Frontend](https://github.com/Federico-Ordonselli/aerides/actions/workflows/frontend.yml/badge.svg)](https://github.com/Federico-Ordonselli/aerides/actions/workflows/frontend.yml)
+[![E2E](https://github.com/Federico-Ordonselli/aerides/actions/workflows/e2e.yml/badge.svg)](https://github.com/Federico-Ordonselli/aerides/actions/workflows/e2e.yml)
+[![Docker images](https://github.com/Federico-Ordonselli/aerides/actions/workflows/docker.yml/badge.svg)](https://github.com/Federico-Ordonselli/aerides/actions/workflows/docker.yml)
+[![Infrastructure](https://github.com/Federico-Ordonselli/aerides/actions/workflows/infra.yml/badge.svg)](https://github.com/Federico-Ordonselli/aerides/actions/workflows/infra.yml)
+[![Secrets](https://github.com/Federico-Ordonselli/aerides/actions/workflows/secrets.yml/badge.svg)](https://github.com/Federico-Ordonselli/aerides/actions/workflows/secrets.yml)
 
 > Full scope, domain model and the 10 business rules: [docs/SPEC.md](docs/SPEC.md). Built in six milestones, see [Roadmap](#roadmap).
 
@@ -90,7 +92,7 @@ docker compose up --build
 
 ## Live demo
 
-> **URL: _pending first deploy_** · demo users `giulia@example.com` (owner), `marco@example.com` (officer), `luca@example.com` (member), password `raidboard-demo`.
+> **URL: _pending first deploy_** · demo users `giulia@example.com` (owner), `marco@example.com` (officer), `luca@example.com` (member), password `aerides-demo`.
 > ⏳ **Cold start**: the free instance sleeps after 15 minutes of inactivity, so the first request can take about a minute. After that it's fast.
 > Try it: log in as Luca in one browser and open "Raid: Vault of Glass", then as Giulia in another browser withdraw from the Tank slot: Luca is promoted and sees it live.
 
@@ -98,9 +100,9 @@ The demo runs on [Render](https://render.com)'s free tier, from [`render.yaml`](
 
 - **One service instead of two**: free Render services can't receive private-network traffic, so the usual nginx-in-front-of-the-backend layout would need two public services. Instead, [`deploy/render/Dockerfile`](deploy/render/Dockerfile) builds the Angular app into the backend's `static/` folder, and the `demo` Spring profile serves it (`SinglePageAppConfig`). App, API and WebSocket keep one origin, so the `SameSite=Strict` refresh cookie and `/ws` work exactly as behind nginx. Static files and Angular routes get their own public security chain (GET only, outside `/api`, `/ws`, `/actuator`); everything else still goes through the normal default-deny chain.
 - **No emails**: the free tier blocks SMTP ports, and a public demo shouldn't email addresses people type in. In the `demo` profile `LoggingMailSender` writes a log line instead of sending; templates, the `notifications` table and the exactly-once reminder logic run as usual.
-- **Database**: a free [Neon](https://neon.com) PostgreSQL in Frankfurt, because Render's free database is deleted after 30 days and the link has to keep working. Same least-privilege setup as on Azure: Flyway migrates as Neon's owner role, the connection pool uses the rows-only `raidboard_app` role. It uses the direct endpoint (Neon's pooler is in transaction mode, which would drop the session's `lock_timeout` and Flyway's lock) and `sslmode=verify-full`. Setup steps: [deploy/render/README.md](deploy/render/README.md).
+- **Database**: a free [Neon](https://neon.com) PostgreSQL in Frankfurt, because Render's free database is deleted after 30 days and the link has to keep working. Same least-privilege setup as on Azure: Flyway migrates as Neon's owner role, the connection pool uses the rows-only `aerides_app` role. It uses the direct endpoint (Neon's pooler is in transaction mode, which would drop the session's `lock_timeout` and Flyway's lock) and `sslmode=verify-full`. Setup steps: [deploy/render/README.md](deploy/render/README.md).
 - **Demo data**: `DemoDataSeeder` (profiles `dev` and `demo`) creates the users, group and events above at the first startup, through the real services, so waitlist, approvals and audit log follow the business rules. Three past raids are moved into the past with SQL and completed, so the statistics page has numbers. It runs in one transaction, and only if the demo users don't exist yet.
-- Test the same image locally: `docker build -f deploy/render/Dockerfile -t raidboard-demo .`
+- Test the same image locally: `docker build -f deploy/render/Dockerfile -t aerides-demo .`
 
 ## Local development
 
@@ -111,7 +113,7 @@ Requirements: JDK 21, Node 24, Docker (for PostgreSQL and the integration tests)
 docker compose up -d postgres mailpit
 
 # 2. Backend on :8080. The "dev" profile provides a development JWT secret and,
-#    on an empty database, creates the demo data (users above, password raidboard-demo)
+#    on an empty database, creates the demo data (users above, password aerides-demo)
 cd backend
 SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
 
@@ -167,7 +169,7 @@ Six GitHub Actions workflows ([`.github/workflows`](.github/workflows)), each tr
 ## Project structure
 
 ```
-backend/   Spring Boot API, package by feature under dev.ordonselli.raidboard
+backend/   Spring Boot API, package by feature under dev.ordonselli.aerides
   auth/      register, login, refresh, logout, security configuration
   user/      user entity and profile endpoint
   group/     groups, memberships, roles, invite codes, per-group authorization (GroupSecurity)
@@ -198,7 +200,7 @@ deploy/    Render demo image (one container: Angular served by Spring Boot)
 - **Errors**: every error is an RFC 9457 `ProblemDetail` JSON body, including 401 and 403 responses raised by the security filters.
 - **Passwords**: hashed with BCrypt, between 8 and 72 characters (BCrypt ignores anything after 72 bytes).
 - **No user enumeration through login timing**: login always runs one BCrypt comparison, against a dummy hash created at startup with the same encoder when the email is unknown. Both cases take the same time and return the same "Invalid email or password" message.
-- **Rate limiting** (Bucket4j, token bucket): `POST /api/auth/login` allows 5 attempts per minute per IP + email, 20 per minute per IP, and 20 per 15 minutes per account whatever the IP (against distributed attacks on one account); `POST /api/auth/refresh` allows 20 per minute per IP. IPv6 clients are grouped by /64 network, since one client usually controls a whole /64. Going over the limit returns `429 Too Many Requests` with a `ProblemDetail` body and a `Retry-After` header. The limits are configurable (`raidboard.rate-limit.*`, see `.env.example`).
+- **Rate limiting** (Bucket4j, token bucket): `POST /api/auth/login` allows 5 attempts per minute per IP + email, 20 per minute per IP, and 20 per 15 minutes per account whatever the IP (against distributed attacks on one account); `POST /api/auth/refresh` allows 20 per minute per IP. IPv6 clients are grouped by /64 network, since one client usually controls a whole /64. Going over the limit returns `429 Too Many Requests` with a `ProblemDetail` body and a `Retry-After` header. The limits are configurable (`aerides.rate-limit.*`, see `.env.example`).
   - The buckets live **in memory**, in a bounded Caffeine cache, so each backend instance counts on its own, and a flood of distinct keys can push old buckets out of the cache. A production deployment would move this to a shared store (Redis via Bucket4j's distributed backends) or to the API gateway / ingress.
   - The per-account limit is deliberately looser than the per-IP ones: whoever can trigger it can also block the real user from logging in for a while. Strict lockouts trade brute-force protection for that denial-of-service risk.
   - The client IP comes from `X-Forwarded-For`, which Spring trusts only when it's set by a proxy on a private network. nginx **overwrites** that header with the real client address, so a client can't fake a new IP on every request. Locally the backend port is published on `127.0.0.1` only. In production the backend must not be publicly reachable, and `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` should list only the real edge proxy (e.g. Azure ingress), which is the one setting the header.

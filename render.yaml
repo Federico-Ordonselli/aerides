@@ -5,7 +5,7 @@
 # (DemoDataSeeder). The production-like deployment is described in infra/ (Terraform for Azure).
 services:
   - type: web
-    name: raidboard
+    name: aerides
     runtime: docker
     plan: free
     region: frankfurt # next to Neon's AWS eu-central-1
@@ -22,7 +22,7 @@ services:
         sync: false
       # The connection pool: a role with rows only, created by Flyway at startup (AppRoleProvisioner)
       - key: DB_USERNAME
-        value: raidboard_app
+        value: aerides_app
       - key: DB_PASSWORD
         sync: false
       # Flyway: Neon's owner role, owner of the schema

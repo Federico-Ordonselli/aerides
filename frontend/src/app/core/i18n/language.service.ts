@@ -4,7 +4,7 @@ import { TranslateService } from '@ngx-translate/core';
 export const SUPPORTED_LANGUAGES = ['it', 'en'] as const;
 export type Language = (typeof SUPPORTED_LANGUAGES)[number];
 
-const STORAGE_KEY = 'raidboard.language';
+const STORAGE_KEY = 'aerides.language';
 
 /** Chooses the UI language (saved choice > browser language > Italian) and remembers changes. */
 @Injectable({ providedIn: 'root' })

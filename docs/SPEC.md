@@ -1,6 +1,6 @@
-# Raidboard — Specification
+# Aerides — Specification
 
-Raidboard is a multi-tenant web app where gaming groups (guilds, clans, tabletop RPG tables) organize sessions: events with role-based slots, sign-ups, automatic waitlists, reminders and attendance stats. Architecturally it is a **resource-booking business application** with roles, approvals, notifications, audit log and reporting.
+Aerides is a multi-tenant web app where gaming groups (guilds, clans, tabletop RPG tables) organize sessions: events with role-based slots, sign-ups, automatic waitlists, reminders and attendance stats. Architecturally it is a **resource-booking business application** with roles, approvals, notifications, audit log and reporting.
 
 This document is the reference for scope and rules. The README describes what is built and how to run it.
 
@@ -17,7 +17,7 @@ This document is the reference for scope and rules. The README describes what is
 - `@Scheduled` jobs + Spring Mail (Mailpit in local dev), Thymeleaf email templates (IT/EN)
 - Spring Boot Actuator, Bucket4j rate limiting on auth endpoints
 - Tests: JUnit 5, Mockito, Testcontainers (PostgreSQL), WireMock
-- Package by feature under `dev.ordonselli.raidboard`: `auth`, `user`, `group`, `game`, `event`, `signup`, `notification`, `realtime`, `stats`, `audit`, `common`
+- Package by feature under `dev.ordonselli.aerides`: `auth`, `user`, `group`, `game`, `event`, `signup`, `notification`, `realtime`, `stats`, `audit`, `common`
 
 **Frontend** (`/frontend`)
 - Angular (latest stable): standalone components, signals, new control flow, zoneless, no NgModules

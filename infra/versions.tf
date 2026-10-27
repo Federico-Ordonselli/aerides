@@ -12,10 +12,10 @@ terraform {
   # (created once by hand), so it is shared and locked during apply:
   #
   # backend "azurerm" {
-  #   resource_group_name  = "raidboard-tfstate"
-  #   storage_account_name = "raidboardtfstate"
+  #   resource_group_name  = "aerides-tfstate"
+  #   storage_account_name = "aeridestfstate"
   #   container_name       = "tfstate"
-  #   key                  = "raidboard.tfstate"
+  #   key                  = "aerides.tfstate"
   # }
 }
 
